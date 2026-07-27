@@ -13,8 +13,12 @@ The stock firmware is Android 9 (API 28) on kernel 4.9.118 from the HiSilicon
 > The secure-boot fuse on this unit is **not burned**, so an unsigned bootloader
 > should be accepted — see [docs/secure-boot.md](docs/secure-boot.md).
 > A flash-free test loop works today: kernels can be served over TFTP and booted
-> from RAM — see [docs/tftp-boot.md](docs/tftp-boot.md). It boots 32-bit kernels
-> only, since the stock bootloader hands off in AArch32.
+> from RAM — see [docs/tftp-boot.md](docs/tftp-boot.md).
+>
+> **ARM Trusted Firmware and mainline U-Boot 2026.07 now boot on this box in
+> AArch64**, loaded entirely into RAM with eMMC untouched — see
+> [docs/aarch64-bringup.md](docs/aarch64-bringup.md). The kernel side is still
+> blocked on the CRG driver.
 > The **kernel** is the gap: the CRG clock & reset driver was never merged, and
 > there is no SoC device tree — see [docs/mainline-status.md](docs/mainline-status.md).
 
@@ -44,6 +48,7 @@ docs/
   uboot.md             mainline U-Boot support, boot chain, stock shell commands
   secure-boot.md       how to tell whether the OTP fuse is burned (it is not)
   tftp-boot.md         booting a kernel from RAM over Ethernet, touching no flash
+  aarch64-bringup.md   TF-A + mainline U-Boot running in 64-bit mode, no eMMC writes
   uart-access.md       how to get a root shell over the serial console
 dts/
   vendor/              device tree decompiled from the stock firmware (reference)
