@@ -1,0 +1,22 @@
+# Never commit firmware images — proprietary, and userdata carries account tokens.
+*.img
+*.bin
+*.dtbo
+userdata*/
+userdata*
+rom_dump/
+dump/
+
+# Build output
+*.o
+*.ko
+*.dtb.tmp
+build/
+out/
+.tmp*
+
+# Editors
+*.swp
+*~
+.vscode/
+.idea/

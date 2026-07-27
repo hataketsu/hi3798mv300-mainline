@@ -1,0 +1,25 @@
+# U-Boot environment extracted from mmcblk0p2 (bootargs), 512 KiB
+# stored CRC32 = 0x6409A180
+# p3 (bootargsbak) is byte-identical
+
+bootdelay=0
+verify=n
+baudrate=115200
+ipaddr=192.168.1.10
+serverip=192.168.1.1
+netmask=255.255.255.0
+bootfile="uImage"
+phy_intf=mii,rgmii
+use_mdio=0,1
+phy_addr=2,1
+gmac_debug=0
+bootcmd=mmc read 0 0x3ED00000 0x5F000 0x4000;bootm 0x3EF00000; mmc read 0 0x1FFBFC0 0x37000 0xC800; mmc read 0 0x3FFBFC0 0x18000 0x3C; bootm 0x1FFBFC0 - 0x3FFC000
+bootargs=androidboot.hardware=bigfish androidboot.selinux=permissive androidboot.serialno=0123456789 console=ttyAMA0,115200 blkdevparts=mmcblk0:1M(fastboot),512K(bootargs),512K(bootargsbak),20M(recovery),2M(deviceinfo),8M(securestore),8M(baseparam),8M(pqparam),2M(dtbo),10M(logo),10M(logobak),20M(fastplay),20M(recoverybak),60M(boot),20M(misc),20M(trustedcore),1700M(system),1000M(cache),1000M(vendor),50M(private),-(userdata) hbcomp=/dev/block/mmcblk0p17 skip_initramfs init=/init root=/dev/mmcblk0p17 androidboot.dtbo_idx=0 dongle nopcie nosata nouart3 nofmc pq=noacmuhd
+recoverybootargs=androidboot.hardware=bigfish androidboot.selinux=permissive androidboot.serialno=0123456789 console=ttyAMA0,115200 blkdevparts=mmcblk0:1M(fastboot),512K(bootargs),512K(bootargsbak),20M(recovery),2M(deviceinfo),8M(securestore),8M(baseparam),8M(pqparam),2M(dtbo),10M(logo),10M(logobak),20M(fastplay),20M(recoverybak),60M(boot),20M(misc),20M(trustedcore),1700M(system),1000M(cache),1000M(vendor),50M(private),-(userdata) hbcomp=/dev/block/mmcblk0p17 androidboot.dtbo_idx=0 dongle nopcie nosata nouart3 nofmc pq=noacmuhd systemd.log_level=debug systemd.log_target=kmsg log_buf_len=1M printk.devkmsg=on
+bootargs_512M=mem=512M mmz=ddr,0,0,32M vmalloc=500M
+bootargs_768M=mem=768M mmz=ddr,0,0,32M vmalloc=500M
+bootargs_1G=mem=988M mmz=ddr,0,0,44M vmalloc=500M
+bootargs_2G=mem=992M mmz=ddr,0,0,44M vmalloc=500M
+stdin=serial
+stdout=serial
+stderr=serial
