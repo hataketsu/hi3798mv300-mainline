@@ -12,6 +12,9 @@ The stock firmware is Android 9 (API 28) on kernel 4.9.118 from the HiSilicon
 > the Skyworth HC2910 (Hi3798MV200) — see [docs/uboot.md](docs/uboot.md).
 > The secure-boot fuse on this unit is **not burned**, so an unsigned bootloader
 > should be accepted — see [docs/secure-boot.md](docs/secure-boot.md).
+> A flash-free test loop works today: kernels can be served over TFTP and booted
+> from RAM — see [docs/tftp-boot.md](docs/tftp-boot.md). It boots 32-bit kernels
+> only, since the stock bootloader hands off in AArch32.
 > The **kernel** is the gap: the CRG clock & reset driver was never merged, and
 > there is no SoC device tree — see [docs/mainline-status.md](docs/mainline-status.md).
 
@@ -40,6 +43,7 @@ docs/
   boot-log.md          annotated stock boot, bootcmd decoded, memory layout
   uboot.md             mainline U-Boot support, boot chain, stock shell commands
   secure-boot.md       how to tell whether the OTP fuse is burned (it is not)
+  tftp-boot.md         booting a kernel from RAM over Ethernet, touching no flash
   uart-access.md       how to get a root shell over the serial console
 dts/
   vendor/              device tree decompiled from the stock firmware (reference)
@@ -49,6 +53,7 @@ extracted/
 logs/
   stock-boot-uart.log  full stock boot over UART (MAC redacted)
 scripts/
+  tftpd.py             dependency-free read-only TFTP server for the host
   uart-cmd.py          run a command on the box over the serial console
   extract-dtb.py       pull FDT blobs out of boot/recovery/dtbo images
   dump-partitions.sh   dump every firmware partition to external storage
