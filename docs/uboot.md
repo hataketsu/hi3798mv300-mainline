@@ -115,7 +115,24 @@ otpwrite                 write otp, for example otpwrite address value
 | `mmc write` / `mm` / `mw` / `nand` | Direct writes to flash or memory. |
 
 `otp_getcustomerkey` and `otp_getstbprivdata` are reads, but they print
-key material — do not paste their output into a public issue.
+key material — do not paste their output into a public issue. The same goes for
+`otpreadall`, whose output contains what looks like a chip-unique key.
+
+`otp_gettrustzonestat` is a stub on this build: it logs and returns -1 without
+reading anything, so its `0xffffffff` is meaningless. To determine secure-boot
+state, see [secure-boot.md](secure-boot.md).
+
+### getinfo subcommands
+
+```
+getinfo bootmode   -> emmc
+getinfo nand       -> no find nand
+getinfo version    -> 3.3.0
+getinfo ddrfree    -> DDR free region baseaddr:0x1000000 size:0x3F000000
+```
+
+`ddrfree` is the useful one: 16 MiB .. 1 GiB is free, which is where a
+TFTP-loaded test kernel should go.
 
 ## Testing a kernel without touching eMMC
 

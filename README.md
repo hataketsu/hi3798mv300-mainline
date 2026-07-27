@@ -10,6 +10,8 @@ The stock firmware is Android 9 (API 28) on kernel 4.9.118 from the HiSilicon
 >
 > Mainline **U-Boot already supports this SoC family** and builds unpatched for
 > the Skyworth HC2910 (Hi3798MV200) — see [docs/uboot.md](docs/uboot.md).
+> The secure-boot fuse on this unit is **not burned**, so an unsigned bootloader
+> should be accepted — see [docs/secure-boot.md](docs/secure-boot.md).
 > The **kernel** is the gap: the CRG clock & reset driver was never merged, and
 > there is no SoC device tree — see [docs/mainline-status.md](docs/mainline-status.md).
 
@@ -37,6 +39,7 @@ docs/
   vendor-firmware.md   partition table, U-Boot environment, stock build metadata
   boot-log.md          annotated stock boot, bootcmd decoded, memory layout
   uboot.md             mainline U-Boot support, boot chain, stock shell commands
+  secure-boot.md       how to tell whether the OTP fuse is burned (it is not)
   uart-access.md       how to get a root shell over the serial console
 dts/
   vendor/              device tree decompiled from the stock firmware (reference)
