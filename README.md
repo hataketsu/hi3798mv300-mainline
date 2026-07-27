@@ -6,8 +6,12 @@ to a generic HiSilicon **Hi3798MV300** Android TV box.
 The stock firmware is Android 9 (API 28) on kernel 4.9.118 from the HiSilicon
 `HiSTBLinuxV100R005C00` BSP, with `ro.build.version.release` spoofed to "14".
 
-> **Status: reconnaissance.** No mainline boot yet. The blocker is the CRG
-> (clock & reset) driver — see [docs/mainline-status.md](docs/mainline-status.md).
+> **Status: reconnaissance.** No mainline boot yet.
+>
+> Mainline **U-Boot already supports this SoC family** and builds unpatched for
+> the Skyworth HC2910 (Hi3798MV200) — see [docs/uboot.md](docs/uboot.md).
+> The **kernel** is the gap: the CRG clock & reset driver was never merged, and
+> there is no SoC device tree — see [docs/mainline-status.md](docs/mainline-status.md).
 
 ## The box
 
@@ -31,12 +35,16 @@ docs/
   hardware.md          SoC block addresses, peripherals, clocks, DVFS tables
   mainline-status.md   what is in mainline today, what is missing, patch links
   vendor-firmware.md   partition table, U-Boot environment, stock build metadata
+  boot-log.md          annotated stock boot, bootcmd decoded, memory layout
+  uboot.md             mainline U-Boot support, boot chain, stock shell commands
   uart-access.md       how to get a root shell over the serial console
 dts/
   vendor/              device tree decompiled from the stock firmware (reference)
   mainline/            work-in-progress mainline .dtsi / .dts
 extracted/
   uboot-env.txt        U-Boot environment as plain text
+logs/
+  stock-boot-uart.log  full stock boot over UART (MAC redacted)
 scripts/
   uart-cmd.py          run a command on the box over the serial console
   extract-dtb.py       pull FDT blobs out of boot/recovery/dtbo images

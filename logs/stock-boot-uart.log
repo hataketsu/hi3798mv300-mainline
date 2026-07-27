@@ -1,0 +1,1058 @@
+
+
+Fastboot 3.3.0 (psqiu@) (Aug 29 2025 - 16:20:37)
+
+Fastboot:      Version 3.3.0
+Build Date:    Aug 29 2025, 16:21:43
+CPU:           Hi3798Mv300 
+Boot Media:    eMMC
+DDR Size:      1GB
+
+Found flash memory controller hifmc100.
+no found nand device.
+
+MMC/SD controller initialization.
+scan edges:2 p2f:5 f2p:7
+mix set temp-phase 2
+scan elemnts: startp:87 endp:82
+Tuning SampleClock. mix set phase:[02/07] ele:[06/13] 
+MMC/SD Card:
+    MID:         0x70
+    Read Block:  512 Bytes
+    Write Block: 512 Bytes
+    Chip Size:   7296M Bytes (High Capacity)
+    Name:        "M72808"
+    Chip Type:   MMC
+    Version:     5.1
+    Speed:       100000000Hz
+    Mode:        HS400
+    Voltage:     1.8V
+    Bus Width:   8bit
+    Boot Addr:   0 Bytes
+Net:   up, down, gmac0
+
+Boot Env on eMMC
+    Env Offset:          0x00100000
+    Env Size:            0x00010000
+    Env Range:           0x00010000
+Only HI3796MV2X chip support
+
+
+SDK Version: HiSTBAndroidV800R001C00SPC120_update_v2019061009
+
+set_serialno: MAGICNUM not setcount=0
+enter the gpio press revocery
+mac:e8:bb:3e:xx:xx:xx
+Reserve Memory
+    Start Addr:          0x3DBFE000
+    Bound Addr:          0x8D92000
+    Free  Addr:          0x3C7B6000
+    Alloc Block:  Addr         Size
+                  0x3D7FD000   0x400000
+                  0x3D4FC000   0x300000
+                  0x3D4F9000   0x2000
+                  0x3D478000   0x80000
+                  0x3D447000   0x30000
+                  0x3D148000   0x2FE000
+                  0x3C95D000   0x7EA000
+                  0x3C959000   0x3000
+                  0x3C7C3000   0x195000
+                  0x3C7B9000   0x9000
+                  0x3C7B6000   0x2000
+
+Press Ctrl+C to stop autoboot
+
+MMC read: dev # 0, block # 389120, count 16384 ... 16384 blocks read: OK
+
+168328767 Bytes/s
+Wrong Image Format for bootm command
+ERROR: can't get kernel image!
+
+MMC read: dev # 0, block # 225280, count 51200 ... 51200 blocks read: OK
+
+172560033 Bytes/s
+
+MMC read: dev # 0, block # 98304, count 60 ... 60 blocks read: OK
+
+52363636 Bytes/s
+## Booting kernel from Legacy Image at 01ffffc0 ...
+   Image Name:   Linux-4.9.118_D9
+   Image Type:   ARM Linux Kernel Image (uncompressed)
+   Data Size:    10354240 Bytes = 9.9 MiB
+   Load Address: 02000000
+   Entry Point:  02000000
+## Flattened Device Tree blob at 03ffc000
+   Booting using the fdt blob at 0x3ffc000
+   XIP Kernel Image ... OK
+OK
+Reserve Memory
+    Start Addr:          0x3DBFE000
+    Bound Addr:          0x8D92000
+    Free  Addr:          0x3C7B6000
+    Alloc Block:  Addr         Size
+                  0x3D7FD000   0x400000
+                  0x3D4FC000   0x300000
+                  0x3D4F9000   0x2000
+                  0x3D478000   0x80000
+                  0x3D447000   0x30000
+                  0x3D148000   0x2FE000
+                  0x3C95D000   0x7EA000
+                  0x3C959000   0x3000
+                  0x3C7C3000   0x195000
+                  0x3C7B9000   0x9000
+                  0x3C7B6000   0x2000
+
+ATAGS [0x00000100 - 0x000005BC], 1212Bytes
+
+Starting kernel ...
+
+Uncompressing Linux... done, booting the kernel.
+Booting Linux on physical CPU 0x0
+Linux version 4.9.118_D9 (rom@rom) (gcc version 4.9.4 20151028 (prerelease) (gcc-linaro-4.9-2016.02 + glibc-2.25 (Build by czyong) Thu Feb 23 17:07:45 CST 2017) ) #3518 SMP PREEMPT Fri Aug 29 16:20:40 CST 2025
+CPU: ARMv7 Processor [410fd034] revision 4 (ARMv7), cr=10c5383d
+CPU: div instructions available: patching division code
+CPU: PIPT / VIPT nonaliasing data cache, VIPT aliasing instruction cache
+initmrd: found no initmrd.
+OF: fdt:Machine model: Hisilicon
+cma: Reserved 44 MiB at 0x39800000
+cma: Reserved 4 MiB at 0x3d800000
+Memory policy: Data cache writealloc
+percpu: Embedded 15 pages/cpu @dfb01000 s31040 r8192 d22208 u61440
+Built 1 zonelists in Zone order, mobility grouping on.  Total pages: 251767
+Kernel command line: androidboot.hardware=bigfish androidboot.selinux=permissive androidboot.serialno=0123456789 console=ttyAMA0,115200 blkdevparts=mmcblk0:1M(fastboot),512K(bootargs),512K(bootargsbak),20M(reM
+log_buf_len individual max cpu contribution: 4096 bytes
+log_buf_len total cpu_extra contributions: 12288 bytes
+log_buf_len min size: 16384 bytes
+log_buf_len: 32768 bytes
+early log buf free: 13904(84%)
+PID hash table entries: 2048 (order: 1, 8192 bytes)
+Dentry cache hash table entries: 65536 (order: 6, 262144 bytes)
+Inode-cache hash table entries: 32768 (order: 5, 131072 bytes)
+Memory: 916052K/1011712K available (14336K kernel code, 1069K rwdata, 5320K rodata, 1024K init, 2796K bss, 46508K reserved, 49152K cma-reserved, 422696K highmem)
+Virtual kernel memory layout:
+    vector  : 0xffff0000 - 0xffff1000   (   4 kB)
+    fixmap  : 0xffc00000 - 0xfff00000   (3072 kB)
+    vmalloc : 0xe0800000 - 0xff800000   ( 496 MB)
+    lowmem  : 0xc0000000 - 0xe0400000   ( 516 MB)
+    pkmap   : 0xbfe00000 - 0xc0000000   (   2 MB)
+    modules : 0xbf000000 - 0xbfe00000   (  14 MB)
+      .text : 0xc0008000 - 0xc0f00000   (15328 kB)
+      .init : 0xc1500000 - 0xc1600000   (1024 kB)
+      .data : 0xc1600000 - 0xc170b7d0   (1070 kB)
+       .bss : 0xc170d000 - 0xc19c816c   (2797 kB)
+SLUB: HWalign=64, Order=0-3, MinObjects=0, CPUs=4, Nodes=1
+Preemptible hierarchical RCU implementation.
+        Build-time adjustment of leaf fanout to 32.
+NR_IRQS:352
+arm_arch_timer: Architected cp15 timer(s) running at 24.00MHz (phys).
+clocksource: arch_sys_counter: mask: 0xffffffffffffff max_cycles: 0x588fe9dc0, max_idle_ns: 440795202592 ns
+sched_clock: 56 bits at 24MHz, resolution 41ns, wraps every 4398046511097ns
+Switching to timer-based delay loop, resolution 41ns
+clocksource: hisp804: mask: 0xffffffff max_cycles: 0xffffffff, max_idle_ns: 79635851949 ns
+sched_clock: 32 bits at 24MHz, resolution 41ns, wraps every 89478484971ns
+Console: colour dummy device 80x30
+Calibrating delay loop (skipped), value calculated using timer frequency.. 48.00 BogoMIPS (lpj=24000)
+pid_max: default: 32768 minimum: 301
+Security Framework initialized
+SELinux:  Initializing.
+Mount-cache hash table entries: 1024 (order: 0, 4096 bytes)
+Mountpoint-cache hash table entries: 1024 (order: 0, 4096 bytes)
+CPU: Testing write buffer coherency: ok
+CPU0: update cpu_capacity 1024
+CPU0: thread -1, cpu 0, socket 0, mpidr 80000000
+Setting up static identity map for 0x100000 - 0x100058
+CPU: hi3798mv300
+CPU1: update cpu_capacity 1024
+CPU1: thread -1, cpu 1, socket 0, mpidr 80000001
+CPU2: update cpu_capacity 1024
+CPU2: thread -1, cpu 2, socket 0, mpidr 80000002
+CPU3: update cpu_capacity 1024
+CPU3: thread -1, cpu 3, socket 0, mpidr 80000003
+Brought up 4 CPUs
+SMP: Total of 4 processors activated (192.00 BogoMIPS).
+CPU: All CPU(s) started in SVC mode.
+CPU3: update max cpu_capacity 1024
+CPU1: update max cpu_capacity 1024
+VFP support v0.3: implementor 41 architecture 3 part 40 variant 3 rev 4
+clocksource: jiffies: mask: 0xffffffff max_cycles: 0xffffffff, max_idle_ns: 1911260446275000 ns
+futex hash table entries: 1024 (order: 4, 65536 bytes)
+PCIe read alloc area phyaddr 08  size 00000000
+PCIe write alloc area phyaddr 08  size 00000000
+NET: Registered protocol family 16
+DMA: preallocated 256 KiB pool for atomic coherent allocations
+hw-breakpoint: found 5 (+1 reserved) breakpoint and 4 watchpoint registers.
+hw-breakpoint: maximum watchpoint size is 8 bytes.
+Serial: AMBA PL011 UART driver
+pl061_gpio f8b20000.gpio0: PL061 GPIO chip @0xf8b20000 registered
+pl061_gpio f8b21000.gpio1: PL061 GPIO chip @0xf8b21000 registered
+pl061_gpio f8b22000.gpio2: PL061 GPIO chip @0xf8b22000 registered
+pl061_gpio f8b23000.gpio3: PL061 GPIO chip @0xf8b23000 registered
+pl061_gpio f8b24000.gpio4: PL061 GPIO chip @0xf8b24000 registered
+pl061_gpio f8004000.gpio5: PL061 GPIO chip @0xf8004000 registered
+pl061_gpio f8b26000.gpio6: PL061 GPIO chip @0xf8b26000 registered
+pl061_gpio f8b27000.gpio7: PL061 GPIO chip @0xf8b27000 registered
+pl061_gpio f8b28000.gpio8: PL061 GPIO chip @0xf8b28000 registered
+pl061_gpio f8b29000.gpio9: PL061 GPIO chip @0xf8b29000 registered
+f8b00000.uart: ttyAMA0 at MMIO 0xf8b00000 (irq = 107, base_baud = 0) is a PL011 rev2
+console [ttyAMA0] enabled
+f8b02000.uart: ttyAMA1 at MMIO 0xf8b02000 (irq = 108, base_baud = 0) is a PL011 rev2
+hisi_iommu_ptable_addr:phy 0x1ec00000    size:0x400000
+hisi_iommu_err_rdaddr :phy 0x1f6bd800    size:0x200
+hisi_iommu_err_wraddr :phy 0x1f6bda00     size:0x200
+in hisi_iommu_domain_init start 
+in hisi_iommu_domain_init end 
+vgaarb: loaded
+SCSI subsystem initialized
+ssp-pl022 f8b1a000.spi: ARM PL022 driver, device ID: 0x00041022
+ssp-pl022 f8b1a000.spi: mapped registers from 0xf8b1a000 to f9b1a000
+spi_master spi0: will run message pump with realtime priority
+usbcore: registered new interface driver usbfs
+usbcore: registered new interface driver hub
+usbcore: registered new device driver usb
+media: Linux media interface: v0.10
+Linux video capture interface: v2.00
+Advanced Linux Sound Architecture Driver Initialized.
+Bluetooth: Core ver 2.22
+NET: Registered protocol family 31
+Bluetooth: HCI device and connection manager initialized
+Bluetooth: HCI socket layer initialized
+Bluetooth: L2CAP socket layer initialized
+Bluetooth: SCO socket layer initialized
+(NULL device *): use max freq 100000 instead
+(NULL device *): use max freq 100000 instead
+(NULL device *): use max freq 100000 instead
+virtual device initialization.
+[00:00:00:770 ERROR-Invalid]:MCE_Init[2516]:ERR: HI_DRV_PDM_GetMceParam
+[00:00:00:771 ERROR-Invalid]:MCE_Init[2528]:ERR: get PDM Param
+clocksource: Switched to clocksource hisp804
+VFS: Disk quotas dquot_6.6.0
+VFS: Dquot-cache hash table entries: 1024 (order 0, 4096 bytes)
+NET: Registered protocol family 2
+TCP established hash table entries: 4096 (order: 2, 16384 bytes)
+TCP bind hash table entries: 4096 (order: 3, 32768 bytes)
+TCP: Hash tables configured (established 4096 bind 4096)
+UDP hash table entries: 256 (order: 1, 8192 bytes)
+UDP-Lite hash table entries: 256 (order: 1, 8192 bytes)
+NET: Registered protocol family 1
+hw perfevents: enabled with armv7_cortex_a17 PMU driver, 7 counters available
+audit: initializing netlink subsys (disabled)
+audit: type=2000 audit(0.865:1): initialized
+workingset: timestamp_bits=14 max_order=18 bucket_order=4
+squashfs: version 4.0 (2009/01/31) Phillip Lougher
+Registering sdcardfs 0.1
+jffs2: version 2.2. (NAND) © 2001-2006 Red Hat, Inc.
+fuse init (API version 7.26)
+bounce: pool size: 64 pages
+Block layer SCSI generic (bsg) driver version 0.4 loaded (major 250)
+io scheduler noop registered
+io scheduler deadline registered (default)
+io scheduler cfq registered
+hiahci-phy: registered new sata phy driver
+input: Hi keyboard as /devices/virtual/input/input0
+input: Hi mouse as /devices/virtual/input/input1
+input: qwerty as /devices/virtual/input/input2
+Hi Android vinput driver init successful!
+hiotg: registered new interface otg driver
+rtc-cputimer f8a2b020.rtc: rtc core: registered rtc-cputimer as rtc0
+Mali: Mali device driver loaded
+misc hi_dbe: hi_dbe ready
+brd: module loaded
+loop: module loaded
+zram: Added device: zram0
+hifmc100: registerd new interface driver hifmc100.
+libphy: Fixed MDIO Bus: probed
+tun: Universal TUN/TAP device driver, 1.6
+tun: (C) 1999-2004 Max Krasnyansky <maxk@qualcomm.com>
+FEPHY:addr=2, la_am=0xc, ldo_am=0x4, r_tuning=0x1f
+libphy: himii: probed
+hi_eth: attached port 0 PHY 2 to driver HiSilicon Festa s28v112
+libphy: higmac_mii_bus: probed
+Eth phy 1 has invalid OUI:0x0
+PPP generic driver version 2.4.2
+PPP BSD Compression module registered
+PPP Deflate Compression module registered
+PPP MPPE Compression module registered
+NET: Registered protocol family 24
+usbcore: registered new interface driver asix
+usbcore: registered new interface driver ax88179_178a
+usbcore: registered new interface driver cdc_ether
+usbcore: registered new interface driver dm9601
+usbcore: registered new interface driver net1080
+usbcore: registered new interface driver cdc_subset
+usbcore: registered new interface driver zaurus
+usbcore: registered new interface driver cdc_ncm
+ehci_hcd: USB 2.0 'Enhanced' Host Controller (EHCI) Driver
+ehci-pci: EHCI PCI platform driver
+ohci_hcd: USB 1.1 'Open' Host Controller (OHCI) Driver
+ohci-pci: OHCI PCI platform driver
+usbcore: registered new interface driver cdc_wdm
+usbcore: registered new interface driver usb-storage
+usbcore: registered new interface driver usbserial
+usbcore: registered new interface driver option
+usbserial: USB Serial support registered for GSM modem (1-port)
+hiudc: version 3.00a 10-AUG-2012
+Core Release: 3.10a
+Setting default values for core params
+Using Buffer DMA mode
+Dedicated Tx FIFOs mode
+mousedev: PS/2 mouse device common for all mice
+usbcore: registered new interface driver xpad
+usbcore: registered new interface driver usb_acecad
+usbcore: registered new interface driver aiptek
+usbcore: registered new interface driver gtco
+usbcore: registered new interface driver hanwang
+usbcore: registered new interface driver kbtab
+i2c /dev entries driver
+usbcore: registered new interface driver uvcvideo
+USB Video Class driver (1.1.1)
+__power_supply_register: Expected proper parent device for 'test_ac'
+__power_supply_register: Expected proper parent device for 'test_battery'
+__power_supply_register: Expected proper parent device for 'test_usb'
+sp805-wdt f8a2c000.watchdog: registration successful
+device-mapper: uevent: version 1.0.3
+device-mapper: ioctl: 4.35.0-ioctl (2016-06-23) initialised: dm-devel@redhat.com
+registered new interface driver himciV2.0_4.9.118_D9_20170401
+###set irq_set_affinity for emmc sd sdio to cpu 2
+f9820000.himciv200.SD: eMMC/MMC/SD Device NOT detected!
+###set irq_set_affinity for emmc sd sdio to cpu 2
+scan edges:2 p2f:5 f2p:7
+mix set temp-phase 2
+random: fast init done
+scan elemnts: startp:93 endp:88
+Tuning SampleClock. mix set phase:[02/07] ele:[06/14] 
+mmc0: new HS400 MMC card at address 0001
+mmcblk0: mmc0:0001 M72808 7.13 GiB 
+mmcblk0boot0: mmc0:0001 M72808 partition 1 4.00 MiB
+mmcblk0boot1: mmc0:0001 M72808 partition 2 4.00 MiB
+mmcblk0rpmb: mmc0:0001 M72808 partition 3 4.00 MiB
+ mmcblk0: p1(fastboot) p2(bootargs) p3(bootargsbak) p4(recovery) p5(deviceinfo) p6(securestore) p7(baseparam) p8(pqparam) p9(dtbo) p10(logo) p11(logobak) p12(fastplay) p13(recoverybak) p14(boot) p15(misc) p16)
+f9c40000.himciv200.SD: eMMC/MMC/SD Device NOT detected!
+###set irq_set_affinity for emmc sd sdio to cpu 2
+hidraw: raw HID events driver (C) Jiri Kosina
+usbcore: registered new interface driver usbhid
+usbhid: USB HID core driver
+ashmem: initialized
+sm1628c_module_init
+probe_sm1628c_func
+usbcore: registered new interface driver snd-usb-audio
+oprofile: using timer interrupt.
+GACT probability on
+Mirror/redirect action on
+Simple TC action Loaded
+netem: version 1.3
+u32 classifier
+    Performance counters on
+    input device check on
+    Actions configured
+Netfilter messages via NETLINK v0.30.
+nf_conntrack version 0.5.0 (14336 buckets, 57344 max)
+ctnetlink v0.93: registering with nfnetlink.
+xt_time: kernel timezone is -0000
+IPVS: Registered protocols ()
+IPVS: Connection hash table configured (size=4096, memory=32Kbytes)
+IPVS: Creating netns size=984 id=0
+IPVS: ipvs loaded.
+IPv4 over IPsec tunneling driver
+ip_tables: (C) 2000-2006 Netfilter Core Team
+ipt_CLUSTERIP: ClusterIP Version 0.8 loaded successfully
+arp_tables: arp_tables: (C) 2002 David S. Miller
+Initializing XFRM netlink socket
+NET: Registered protocol family 10
+mip6: Mobile IPv6
+ip6_tables: (C) 2000-2006 Netfilter Core Team
+sit: IPv6, IPv4 and MPLS over IPv4 tunneling driver
+NET: Registered protocol family 17
+NET: Registered protocol family 15
+Bridge firewalling registered
+Bluetooth: RFCOMM TTY layer initialized
+Bluetooth: RFCOMM socket layer initialized
+Bluetooth: RFCOMM ver 1.11
+Bluetooth: BNEP (Ethernet Emulation) ver 1.3
+Bluetooth: BNEP filters: protocol multicast
+Bluetooth: BNEP socket layer initialized
+Bluetooth: HIDP (Human Interface Emulation) ver 1.2
+Bluetooth: HIDP socket layer initialized
+8021q: 802.1Q VLAN Support v1.8
+lib80211: common routines for IEEE802.11 drivers
+Registering SWP/SWPB emulation handler
+registered taskstats version 1
+hisi-sndcard hisi-sndcard: aiao-hifi <-> hisi-i2s mapping ok
+[00:00:02:754 ERROR-HI_PM]:getWakeUpMessage[1395]:c51_GetWakeUpMode err! 
+rtc-cputimer f8a2b020.rtc: setting system clock to 1970-01-01 00:00:02 UTC (2)
+[rfkill]: sw_rfkill_init
+ALSA device list:
+  #0: HISI-AIAO
+EXT4-fs (mmcblk0p17): couldn't mount as ext3 due to feature incompatibilities
+EXT4-fs (mmcblk0p17): warning: mounting unchecked fs, running e2fsck is recommended
+EXT4-fs (mmcblk0p17): mounted filesystem without journal. Opts: (null)
+VFS: Mounted root (ext4 filesystem) on device 259:9.
+Freeing unused kernel memory: 1024K
+init: init first stage started!
+init: Using Android DT directory /proc/device-tree/firmware/android/
+init: [libfs_mgr]fs_mgr_read_fstab_default(): failed to find device default fstab
+EXT4-fs (mmcblk0p19): mounted filesystem without journal. Opts: barrier=1,inode_readahead_blks=8
+init: [libfs_mgr]__mount(source=/dev/block/platform/soc/f9830000.himciv200.MMC/by-name/vendor,target=/vendor,type=ext4)=0: Success
+init: Skipped setting INIT_AVB_VERSION (not in recovery mode)
+init: Loading SELinux policy
+audit: type=1403 audit(3.403:2): policy loaded auid=4294967295 ses=4294967295
+selinux: SELinux: Loaded policy from /vendor/etc/selinux/precompiled_sepolicy
+
+selinux: SELinux: Loaded file_contexts
+
+random: init: uninitialized urandom read (40 bytes read)
+init: init second stage started!
+init: Using Android DT directory /proc/device-tree/firmware/android/
+selinux: SELinux: Loaded file_contexts
+
+init: Running restorecon...
+init: waitid failed: No child processes
+init: Couldn't load property file '/odm/default.prop': open() failed: No such file or directory: No such file or directory
+init: Created socket '/dev/socket/property_service', mode 666, user 0, group 0
+init: Forked subcontext for 'u:r:vendor_init:s0' with pid 1406
+random: init: uninitialized urandom read (40 bytes read)
+init: Forked subcontext for 'u:r:vendor_init:s0' with pid 1407
+random: init: uninitialized urandom read (40 bytes read)
+init: Parsing file /init.rc...
+ueventd: ueventd started!
+selinux: SELinux: Loaded file_contexts
+
+ueventd: Parsing file /ueventd.rc...
+ueventd: Parsing file /vendor/ueventd.rc...
+ueventd: Parsing file /odm/ueventd.rc...
+ueventd: Unable to read config file '/odm/ueventd.rc': open() failed: No such file or directory
+ueventd: Parsing file /ueventd.bigfish.rc...
+ueventd: Unable to read config file '/ueventd.bigfish.rc': open() failed: No such file or directory
+ueventd: Coldboot took 0.151 seconds
+keychord: using input dev Hi keyboard for fevent
+EXT4-fs (mmcblk0p21): Ignoring removed nomblk_io_submit option
+EXT4-fs (mmcblk0p21): recovery complete
+EXT4-fs (mmcblk0p21): mounted filesystem with ordered data mode. Opts: errors=remount-ro,nomblk_io_submit
+audit: type=1400 audit(4.124:3): avc:  denied  { read } for  pid=1829 comm="e2fsck" name="mmcblk0p21" dev="tmpfs" ino=7418 scontext=u:r:fsck:s0 tcontext=u:object_r:block_device:s0 tclass=blk_file permissive=1
+audit: type=1400 audit(4.143:4): avc:  denied  { open } for  pid=1829 comm="e2fsck" path="/dev/block/mmcblk0p21" dev="tmpfs" ino=7418 scontext=u:r:fsck:s0 tcontext=u:object_r:block_device:s0 tclass=blk_file p1
+audit: type=1400 audit(4.162:5): avc:  denied  { write } for  pid=1829 comm="e2fsck" name="mmcblk0p21" dev="tmpfs" ino=7418 scontext=u:r:fsck:s0 tcontext=u:object_r:block_device:s0 tclass=blk_file permissive=1
+audit: type=1400 audit(4.181:6): avc:  denied  { ioctl } for  pid=1829 comm="e2fsck" path="/dev/block/mmcblk0p21" dev="tmpfs" ino=7418 ioctlcmd=0x127c scontext=u:r:fsck:s0 tcontext=u:object_r:block_device:s0 1
+e2fsck: e2fsck 1.43.3 (04-Sep-2016)
+
+e2fsck: Pass 1: Checking inodes, blocks, and sizes
+
+e2fsck: Pass 2: Checking directory structure
+
+e2fsck: Pass 3: Checking directory connectivity
+
+e2fsck: Pass 4: Checking reference counts
+
+e2fsck: Pass 5: Checking group summary information
+
+e2fsck: /dev/block/platform/soc/f9830000.himciv200.MMC/by-name/userdata: 5957/213840 files (5.5% non-contiguous), 493215/854016 blocks
+
+EXT4-fs (mmcblk0p21): mounted filesystem with ordered data mode. Opts: barrier=1,data=ordered,noauto_da_alloc
+EXT4-fs (mmcblk0p18): Ignoring removed nomblk_io_submit option
+EXT4-fs (mmcblk0p18): recovery complete
+EXT4-fs (mmcblk0p18): mounted filesystem with ordered data mode. Opts: errors=remount-ro,nomblk_io_submit
+urandom_read: 3 callbacks suppressed
+random: e2fsck: uninitialized urandom read (40 bytes read)
+random: e2fsck: uninitialized urandom read (40 bytes read)
+e2fsck: e2fsck 1.43.3 (04-Sep-2016)
+
+e2fsck: Pass 1: Checking inodes, blocks, and sizes
+
+e2fsck: Pass 2: Checking directory structure
+
+EXT4-fs (mmcblk0p18): mounted filesystem with ordered data mode. Opts: barrier=1
+EXT4-fs (mmcblk0p20): Ignoring removed nomblk_io_submit option
+EXT4-fs (mmcblk0p20): recovery complete
+EXT4-fs (mmcblk0p20): mounted filesystem with ordered data mode. Opts: errors=remount-ro,nomblk_io_submit
+random: e2fsck: uninitialized urandom read (40 bytes read)
+EXT4-fs (mmcblk0p20): mounted filesystem with ordered data mode. Opts: barrier=1,data=ordered
+init: 11 output lines suppressed due to ratelimiting
+zram0: detected capacity change from 0 to 610746368
+mkswap: Swapspace size: 596428k, UUID=<redacted>
+Adding 596428k swap on /dev/block/zram0.  Priority:-1 extents:1 across:596428k SS
+logd.auditd: start
+logd.klogd: 5891555083
+binder: 1846:1846 ioctl 4018620d bee9da00 returned -22
+rfkill blocked:bt_reg_on: gpio5_3 low!
+type=1400 audit(6.197:7): avc: denied { write } for pid=1 comm="init" name="state" dev="sysfs" ino=13655 scontext=u:r:init:s0 tcontext=u:object_r:sysfs:s0 tclass=file permissive=1
+type=1400 audit(6.197:7): avc: denied { write } for pid=1 comm="init" name="state" dev="sysfs" ino=13655 scontext=u:r:init:s0 tcontext=u:object_r:sysfs:s0 tclass=file permissive=1
+type=1400 audit(6.197:8): avc: denied { open } for pid=1 comm="init" path="/sys/devices/platform/hi-rfkill.0/rfkill/rfkill0/state" dev="sysfs" ino=13655 scontext=u:r:init:s0 tcontext=u:object_r:sysfs:s0 tclas1
+file system registered
+
+**********************************************************
+**   NOTICE NOTICE NOTICE NOTICE NOTICE NOTICE NOTICE   **
+**                                                      **
+** trace_printk() being used. Allocating extra memory.  **
+**                                                      **
+** This means that this is a DEBUG kernel and it is     **
+** unsafe for production use.                           **
+**                                                      **
+** If you see this message and you are not debugging    **
+** the kernel, report this immediately to your vendor!  **
+**                                                      **
+**   NOTICE NOTICE NOTICE NOTICE NOTICE NOTICE NOTICE   **
+**********************************************************
+WCN: marlin_init entry!
+WCN_DEBUG: marlin_parse_dt: [1642]:btwf firmware path is /system/etc/firmware/wcnmodem.bin
+
+WCN_DEBUG: marlin_parse_dt: [1644]:gnss firmware path is /system/etc/firmware/gnssmodem.bin
+
+WCN: wcn config keep power on
+WCN: wcn config bt wake host
+sdiohal:sdiohal_parse_dt adma_tx:1, adma_rx:1, pwrseq:0, irq type:data, gpio_num:0, blksize:512
+sdiohal:sdiohal_init ok
+WCN_DEBUG: mdbg_ring_init: [315]:mdbg_ring_init success!
+WCN_DEBUG: log_cdev_init: [262]:log_cdev_init
+
+WCN_DEBUG: wcnlog_register_device: [245]:log dev major=255,minor=0
+
+WCN_DEBUG: wcnlog_register_device: [245]:log dev major=255,minor=1
+
+WCN_DEBUG: wcn_op_init: [133]:wcn_op_init
+
+WCN_DEBUG: loopcheck_init: [230]:loopcheck_init
+
+WCN: marlin_probe ok!
+sprdbt_tty: loading out-of-tree module taints kernel.
+mtty_probe init device addr: 0xde7ea200
+-->rfkill_bluetooth_init
+<--rfkill_bluetooth_init
+logd.daemon: reinit
+healthd: BatteryCurrentNowPath not found
+healthd: BatteryCycleCountPath not found
+healthd: battery l=42 v=3 t=42.4 h=2 st=2 fc=100 chg=au
+healthd: BatteryCurrentNowPath not found
+healthd: BatteryCycleCountPath not found
+android.hardware.health@2.0-impl: wakealarm_init: timerfd_create failed
+healthd: battery l=42 v=3 t=42.4 h=2 st=2 fc=100 chg=au
+type=1400 audit(6.197:8): avc: denied { open } for pid=1 comm="init" path="/sys/devices/platform/hi-rfkill.0/rfkill/rfkill0/state" dev="sysfs" ino=13655 scontext=u:r:init:s0 tcontext=u:object_r:sysfs:s0 tclas1
+audit: audit_lost=1 audit_rate_limit=5 audit_backlog_limit=64
+audit: rate limit exceeded
+type=1400 audit(7.013:9): avc: denied { create } for pid=1972 comm="lz_plug" scontext=u:r:lz_plug:s0 tcontext=u:r:lz_plug:s0 tclass=tcp_socket permissive=1
+type=1400 audit(7.013:9): avc: denied { create } for pid=1972 comm="lz_plug" scontext=u:r:lz_plug:s0 tcontext=u:r:lz_plug:s0 tclass=tcp_socket permissive=1
+type=1400 audit(7.013:10): avc: denied { net_raw } for pid=1972 comm="lz_plug" capability=13 scontext=u:r:lz_plug:s0 tcontext=u:r:lz_plug:s0 tclass=capability permissive=1
+[00:00:07:213 ERROR-HI_CIPHER]:HI_DRV_CIPHER_LoadHdcpKey[168]:Invalid head of B1~B3!
+[00:00:07:226 ERROR-HI_HDMI]:DRV_HDMI_KeyLoad[4353]:Load hdcp key error!
+console:/ $ ====write bit low,delay 100ms 
+read descriptors
+read strings
+g_ffs gadget: g_ffs ready
+====write bit delay 
+======== Card detection to detect SDIO1 card! ========
+ehci-platform: EHCI generic platform driver
+ehci-platform f9890000.ehci: EHCI Host Controller
+ehci-platform f9890000.ehci: new USB bus registered, assigned bus number 1
+ehci-platform f9890000.ehci: irq 114, io mem 0xf9890000
+ehci-platform f9890000.ehci: USB 2.0 started, EHCI 1.00
+usb usb1: New USB device found, idVendor=1d6b, idProduct=0002
+usb usb1: New USB device strings: Mfr=3, Product=2, SerialNumber=1
+usb usb1: Product: EHCI Host Controller
+usb usb1: Manufacturer: Linux 4.9.118_D9 ehci_hcd
+usb usb1: SerialNumber: f9890000.ehci
+hub 1-0:1.0: USB hub found
+hub 1-0:1.0: 2 ports detected
+ohci-platform: OHCI generic platform driver
+ohci-platform f9880000.ohci: Generic Platform OHCI controller
+ohci-platform f9880000.ohci: new USB bus registered, assigned bus number 2
+ohci-platform f9880000.ohci: irq 115, io mem 0xf9880000
+usb usb2: New USB device found, idVendor=1d6b, idProduct=0001
+usb usb2: New USB device strings: Mfr=3, Product=2, SerialNumber=1
+usb usb2: Product: Generic Platform OHCI controller
+usb usb2: Manufacturer: Linux 4.9.118_D9 ohci_hcd
+usb usb2: SerialNumber: f9880000.ohci
+hub 2-0:1.0: USB hub found
+hub 2-0:1.0: 2 ports detected
+init: Command 'insmod /vendor/lib/modules/ohci-platform.ko' action=vendor.insmod.ko=1 (/vendor/etc/init/hw/init.bigfish.rc:105) took 150ms and succeeded
+card connected!
+xhci-hcd f98a0000.xhci: xHCI Host Controller
+xhci-hcd f98a0000.xhci: new USB bus registered, assigned bus number 3
+xhci-hcd f98a0000.xhci: hcc params 0x0220f06c hci version 0x100 quirks 0x00030010
+xhci-hcd f98a0000.xhci: irq 117, io mem 0xf98a0000
+usb usb3: New USB device found, idVendor=1d6b, idProduct=0002
+usb usb3: New USB device strings: Mfr=3, Product=2, SerialNumber=1
+usb usb3: Product: xHCI Host Controller
+usb usb3: Manufacturer: Linux 4.9.118_D9 xhci-hcd
+usb usb3: SerialNumber: f98a0000.xhci
+hub 3-0:1.0: USB hub found
+hub 3-0:1.0: 1 port detected
+xhci-hcd f98a0000.xhci: xHCI Host Controller
+xhci-hcd f98a0000.xhci: new USB bus registered, assigned bus number 4
+usb usb4: We don't know the algorithms for LPM for this host, disabling LPM.
+usb usb4: New USB device found, idVendor=1d6b, idProduct=0003
+usb usb4: New USB device strings: Mfr=3, Product=2, SerialNumber=1
+usb usb4: Product: xHCI Host Controller
+usb usb4: Manufacturer: Linux 4.9.118_D9 xhci-hcd
+usb usb4: SerialNumber: f98a0000.xhci
+hub 4-0:1.0: USB hub found
+hub 4-0:1.0: 1 port detected
+rtk_btusb: RTKBT_RELEASE_NAME: 20190125_BT_ANDROID_9.0
+rtk_btusb: Realtek Bluetooth USB driver module init, version 5.0.1
+rtk_btusb: Register usb char device interface for BT driver
+usbcore: registered new interface driver rtk_btusb
+selinux: avc:  denied  { set } for property=persist.vendor.prop.resolution pid=1951 uid=1000 gid=1003 scontext=u:r:hal_graphics_composer_default:s0 tcontext=u:object_r:vendor_default_prop:s0 tclass=property_s1
+
+tntfs: module license 'Commercial. For support email ntfs-support@tuxera.com.' taints kernel.
+Disabling lock debugging due to kernel taint
+Tuxera NTFS driver 3017.7.4.6 [Flags: R/W MODULE].
+Built against headers 4.9.118_hi3798mv2x #1 SMP PREEMPT Wed Mar 13 11:08:23 CST 2019 arm
+Running on kernel 4.9.118_D9 #3518 SMP PREEMPT Fri Aug 29 16:20:40 CST 2025 armv7l
+init: Received control message 'interface_start' for 'android.hardware.graphics.composer@2.1::IComposer/default' from pid: 1846 (/system/bin/hwservicemanager)
+init: Could not find service hosting interface android.hardware.graphics.composer@2.1::IComposer/default
+init: Received control message 'interface_start' for 'android.hardware.graphics.composer@2.1::IComposer/default' from pid: 1846 (/system/bin/hwservicemanager)
+init: Could not find service hosting interface android.hardware.graphics.composer@2.1::IComposer/default
+init: Command 'insmod /vendor/lib/modules/g_ffs.ko idVendor=0x18d1 iSerialNumber=${ro.serialno}' action=vendor.insmod.ko=1 (/vendor/etc/init/hw/init.bigfish.rc:114) took 0ms and failed: finit_module for "/vens
+init: Command 'mkdir -p /dev/usb-ffs/adb' action=vendor.insmod.ko=1 (/vendor/etc/init/hw/init.bigfish.rc:115) took 2ms and failed: mkdir() failed: Read-only file system
+audit: audit_lost=9 audit_rate_limit=5 audit_backlog_limit=64
+audit: rate limit exceeded
+ffs_data_put(): freeing
+init: Command 'mount functionfs adb /dev/usb-ffs/adb uid=2000,gid=2000' action=vendor.insmod.ko=1 (/vendor/etc/init/hw/init.bigfish.rc:116) took 0ms and failed: mount() failed: Device or resource busy
+init: processing action (vendor.insmod.ko=1) from (/vendor/etc/init/hw/init.bigfish.rc:122)
+himciv200 f9c40000.himciv200.SD: card claims to support voltages below defined range
+himciv300_wait_cmd_complete:715: himciv200_2: wait cmd request complete is timeout!Raw interrupt status 0x00000000, CMD11(0)
+
+himciv300_cur_status:98:  [CIU:0X0 BIU:0X0 RINT:0X0 STS:0X5906 IDSTS:0X0]
+
+scan edges:2 p2f:5 f2p:7
+mix set temp-phase 2
+scan elemnts: startp:49 endp:47
+Tuning SampleClock. mix set phase:[02/07] ele:[06/07] 
+mmc2: new ultra high speed SDR104 SDIO card at address 0001
+random: crng init done
+random: 1 urandom warning(s) missed due to ratelimiting
+capability: warning: `main' uses 32-bit capabilities (legacy support in use)
+healthd: battery l=42 v=3 t=42.4 h=2 st=2 fc=100 chg=au
+healthd: battery l=42 v=3 t=42.4 h=2 st=2 fc=100 chg=au
+healthd: battery l=42 v=3 t=42.4 h=2 st=2 fc=100 chg=au
+init: processing action (sys.sysctl.extra_free_kbytes=*) from (/init.rc:725)
+type=1400 audit(8.649:28): avc: denied { read write } for pid=1951 comm="android.hardwar" name="hi_module" dev="tmpfs" ino=8238 scontext=u:r:hal_graphics_composer_default:s0 tcontext=u:object_r:hi_module_devi1
+type=1400 audit(1756455528.122:40): avc: denied { read } for pid=2179 comm="system_server" name="uevent" dev="sysfs" ino=15078 scontext=u:r:system_server:s0 tcontext=u:object_r:sysfs:s0 tclass=file permissive1
+type=1400 audit(1756455528.122:40): avc: denied { read } for pid=2179 comm="system_server" name="uevent" dev="sysfs" ino=15078 scontext=u:r:system_server:s0 tcontext=u:object_r:sysfs:s0 tclass=file permissive1
+type=1400 audit(1756455528.122:41): avc: denied { open } for pid=2179 comm="system_server" path="/sys/devices/platform/soc/f9c40000.himciv200.SD/mmc_host/mmc2/mmc2:0001/mmc2:0001:1/uevent" dev="sysfs" ino=1501
+type=1400 audit(1756455528.122:41): avc: denied { open } for pid=2179 comm="system_server" path="/sys/devices/platform/soc/f9c40000.himciv200.SD/mmc_host/mmc2/mmc2:0001/mmc2:0001:1/uevent" dev="sysfs" ino=1501
+type=1400 audit(1756455528.262:42): avc: denied { read } for pid=1956 comm="HwBinder:1956_2" name="u:object_r:system_prop:s0" dev="tmpfs" ino=5702 scontext=u:r:hal_hwandroidmediahal:s0 tcontext=u:object_r:sys1
+type=1400 audit(1756455528.262:42): avc: denied { read } for pid=1956 comm="HwBinder:1956_2" name="u:object_r:system_prop:s0" dev="tmpfs" ino=5702 scontext=u:r:hal_hwandroidmediahal:s0 tcontext=u:object_r:sys1
+type=1400 audit(1756455528.262:43): avc: denied { open } for pid=1956 comm="HwBinder:1956_2" path="/dev/__properties__/u:object_r:system_prop:s0" dev="tmpfs" ino=5702 scontext=u:r:hal_hwandroidmediahal:s0 tco1
+type=1400 audit(1756455528.262:43): avc: denied { open } for pid=1956 comm="HwBinder:1956_2" path="/dev/__properties__/u:object_r:system_prop:s0" dev="tmpfs" ino=5702 scontext=u:r:hal_hwandroidmediahal:s0 tco1
+type=1400 audit(1756455528.262:44): avc: denied { getattr } for pid=1956 comm="HwBinder:1956_2" path="/dev/__properties__/u:object_r:system_prop:s0" dev="tmpfs" ino=5702 scontext=u:r:hal_hwandroidmediahal:s0 1
+[13:21:11:694 ERROR-HI_VDEC]:DRV_VDEC_GetUsrData[12958]:u32Length out range 256!
+IPv6: ADDRCONF(NETDEV_UP): eth0: link is not ready
+sdcardfs version 2.0
+sdcardfs: dev_name -> /data/media
+sdcardfs: options -> fsuid=1023,fsgid=1023,multiuser,derive_gid,default_normal,mask=6,userid=0,gid=1015
+sdcardfs: mnt -> da7db810
+sdcardfs: mounted on top of /data/media type ext4
+Remount options were mask=23,gid=9997 for vfsmnt da7db710.
+sdcardfs : options - debug:1
+sdcardfs : options - gid:9997
+sdcardfs : options - mask:23
+Remount options were mask=7,gid=9997 for vfsmnt da7d9a10.
+sdcardfs : options - debug:1
+sdcardfs : options - gid:9997
+sdcardfs : options - mask:7
+(1955)RTW: module init start
+(1955)RTW: rtl88x2bs v5.2.21.4-p2_31888.20190104_COEX20180824-6666_beta_dbg
+(1955)RTW: build time: Apr 21 2023 17:22:11
+(1955)RTW: rtl88x2bs BT-Coex version = COEX20180824-6666
+(1955)RTW: == SDIO Card Info ==
+(1955)RTW:   clock: 200000000 Hz
+(1955)RTW:   timing spec: sd uhs SDR104
+(1955)RTW:   sd3_bus_mode: TRUE
+(1955)RTW: ================
+(1955)RTW: [HALMAC]11692M
+(1955)RTW: [HALMAC]HALMAC_MAJOR_VER = 1
+(1955)RTW: [HALMAC]HALMAC_PROTOTYPE_VER = 4
+(1955)RTW: [HALMAC]HALMAC_MINOR_VER = 3
+(1955)RTW: [HALMAC]HALMAC_PATCH_VER = 15
+(1955)RTW: [HALMAC]12079M
+(1955)RTW: [HALMAC]HALMAC_MAJOR_VER_88XX = 1
+(1955)RTW: [HALMAC]HALMAC_PROTOTYPE_88XX = 4
+(1955)RTW: [HALMAC]HALMAC_MINOR_VER_88XX = 3
+(1955)RTW: [HALMAC]HALMAC_PATCH_VER_88XX = 15
+(1955)RTW: HW EFUSE
+(1955)RTW: 0x000: 29 81 00 3C  09 10 28 00  AA 04 AD 75  10 0E 30 0B  
+(1955)RTW: 0x010: 2A 2A 2B 2B  2B 2B 28 28  2A 2B 2B 02  00 00 FF FF  
+(1955)RTW: 0x020: FF FF 21 21  21 22 20 20  20 20 20 20  20 20 20 20  
+(1955)RTW: 0x030: 02 00 FF FF  00 FF E0 00  FF FF 28 28  28 28 28 28  
+(1955)RTW: 0x040: 28 28 28 28  28 02 00 00  FF FF FF FF  23 23 23 24  
+(1955)RTW: 0x050: 21 21 21 21  21 21 21 21  21 21 02 00  FF FF 00 FF  
+(1955)RTW: 0x060: E0 00 FF FF  FF FF FF FF  FF FF FF FF  FF FF FF FF  
+(1955)RTW: 0x070: FF FF FF FF  FF FF FF FF  FF FF FF FF  FF FF FF FF  
+(1955)RTW: 0x080: FF FF FF FF  FF FF FF FF  FF FF FF FF  FF FF FF FF  
+(1955)RTW: 0x090: FF FF FF FF  FF FF FF FF  FF FF FF FF  FF FF FF FF  
+(1955)RTW: 0x0A0: FF FF FF FF  FF FF FF FF  FF FF FF FF  FF FF FF FF  
+(1955)RTW: 0x0B0: FF FF FF FF  FF FF FF FF  7F 1C 19 00  FF FF FF FF  
+(1955)RTW: 0x0C0: FF 29 00 11  00 00 00 00  00 FF 03 FF  FF FF FF FF  
+(1955)RTW: 0x0D0: FE D1 01 23  34 FF FF FF  20 04 4C 02  22 B8 21 02  
+(1955)RTW: 0x0E0: 0C 00 22 04  00 08 00 32  FF 21 02 0C  00 22 2A 01  
+(1955)RTW: 0x0F0: 01 00 00 00  00 00 00 00  00 00 00 00  02 00 FF FF  
+(1955)RTW: 0x100: 00 00 00 00  00 00 00 00  00 00 00 00  00 00 00 00  
+(1955)RTW: 0x110: 00 EB 00 6E  01 00 00 00  00 FF 30 88  41 56 82 CF  
+(1955)RTW: 0x120: FF FF FF FF  FF FF FF FF  FF FF FF FF  FF FF FF FF  
+(1955)RTW: 0x130: FF FF FF FF  FF FF FF FF  FF FF FF FF  FF FF FF FF  
+(1955)RTW: 0x140: FF FF FF FF  FF FF FF FF  FF FF FF FF  FF FF FF FF  
+(1955)RTW: 0x150: FF FF FF FF  FF FF FF FF  FF FF FF FF  FF FF FF FF  
+(1955)RTW: 0x160: FF FF FF FF  FF FF FF FF  FF FF FF FF  FF FF FF FF  
+(1955)RTW: 0x170: FF FF FF FF  FF FF FF FF  FF FF FF FF  FF FF FF FF  
+(1955)RTW: 0x180: FF FF FF FF  FF FF FF FF  FF FF FF FF  FF FF FF FF  
+(1955)RTW: 0x190: FF FF FF FF  FF FF FF FF  FF FF FF FF  FF FF FF FF  
+(1955)RTW: 0x1A0: FF FF FF FF  FF FF FF FF  FF FF FF FF  FF FF FF FF  
+(1955)RTW: 0x1B0: FF FF FF FF  FF FF FF FF  FF FF FF FF  FF FF FF FF  
+(1955)RTW: 0x1C0: FF FF FF FF  FF FF FF FF  FF FF FF FF  FF FF FF FF  
+(1955)RTW: 0x1D0: FF FF FF FF  FF FF FF FF  FF FF FF FF  FF FF FF FF  
+(1955)RTW: 0x1E0: FF FF FF FF  FF FF FF FF  FF FF FF FF  FF FF FF FF  
+(1955)RTW: 0x1F0: FF FF FF FF  FF FF FF FF  FF FF FF FF  FF FF FF FF  
+(1955)RTW: 0x200: FF FF FF FF  FF FF FF FF  FF FF FF FF  FF FF FF FF  
+(1955)RTW: 0x210: FF FF FF FF  FF FF FF FF  FF FF FF FF  FF FF FF FF  
+(1955)RTW: 0x220: FF FF FF FF  FF FF FF FF  FF FF FF FF  FF FF FF FF  
+(1955)RTW: 0x230: FF FF FF FF  FF FF FF FF  FF FF FF FF  FF FF FF FF  
+(1955)RTW: 0x240: FF FF FF FF  FF FF FF FF  FF FF FF FF  FF FF FF FF  
+(1955)RTW: 0x250: FF FF FF FF  FF FF FF FF  FF FF FF FF  FF FF FF FF  
+(1955)RTW: 0x260: FF FF FF FF  FF FF FF FF  FF FF FF FF  FF FF FF FF  
+(1955)RTW: 0x270: FF FF FF FF  FF FF FF FF  FF FF FF FF  FF FF init: processing action (sys.boot_completed=1) from (/init.rc:719)
+init: processing action (sys.boot_completed=1) from (/vendor/etc/init/hw/init.bigfish.rc:141)
+init: starting service 'preinstall'...
+init: processing action (sys.boot_completed=1 && sys.logbootcomplete=1) from (/system/etc/init/bootstat.rc:70)
+init: starting service 'exec 5 (/system/bin/bootstat --set_system_boot_reason --record_boot_complete --record_boot_reason --record_time_since_factory_reset -l)'...
+audit: audit_lost=20 audit_rate_limit=5 audit_backlog_limit=64
+audit: rate limit exceeded
+init: processing action (sys.boot_completed=1 && sys.wifitracing.started=0) from (/system/etc/init/wifi-events.rc:20)
+FF FF  
+(1955)RTW: 0x280: FF FF FF FF  FF FF FF FF  FF FF FF FF  FF FF FF FF  
+(1955)RTW: 0x290: FF FF FF FF  FF FF FF FF  FF FF FF FF  FF FF FF FF  
+(1955)RTW: 0x2A0: FF FF FF FF  FF FF FF FF  FF FF FF FF  FF FF FF FF  
+(1955)RTW: 0x2B0: FF FF FF FF  FF FF FF FF  FF FF FF FF  FF FF FF FF  
+(1955)RTW: 0x2C0: FF FF FF FF  FF FF FF FF  FF FF FF FF  FF FF FF FF  
+(1955)RTW: 0x2D0: FF FF FF FF  FF FF FF FF  FF FF FF FF  FF FF FF FF  
+(1955)RTW: 0x2E0: FF FF FF FF  FF FF FF FF  FF FF FF FF  FF FF FF FF  
+(1955)RTW: 0x2F0: FF FF FF FF  FF FF FF FF  FF FF FF FF  FF FF FF FF  
+(1955)RTW: hal_com_config_channel_plan chplan:0x7F
+init: Command 'mkdir /sys/kernel/debug/tracing/instances/wifi 711' action=sys.boot_completed=1 && sys.wifitracing.started=0 (/system/etc/init/wifi-events.rc:22) took 233ms and succeeded
+(1955)RTW: rtw_regsty_chk_target_tx_power_valid return _FALSE for band:0, path:0, rs:0, t:-1
+
+Welcome to minicom 2.9
+
+OPTIONS: I18n 
+Port /dev/ttyUSB0, 23:58:19
+
+Press CTRL-A Z for help on special keys
+
+
+Bootrom start
+Boot Media: eMMC
+Decrypt auxiliary code ...OK
+Enter boot auxiliary code
+
+Auxiliary code - v1.00
+DDR code - V1.1.2 20160205
+Build: Dec 12 2017 - 01:04:04
+
+Reg Version:  v1.5.0\
+Reg Time:     2025/04/10 11:54:30
+Reg Name:     hi3798mv3dms1_hi3798mv300_DDR3-1866_1GB_16bitx2_2layers.reg
+
+dms board
+Boot auxiliary code success
+Bootrom success
+
+
+System startup
+
+
+Relocate Boot
+
+Jump to C code
+
+
+Fastboot 3.3.0 (psqiu@) (Aug 29 2025 - 16:20:37)
+
+Fastboot:      Version 3.3.0
+Build Date:    Aug 29 2025, 16:21:43
+CPU:           Hi3798Mv300 
+Boot Media:    eMMC
+DDR Size:      1GB
+
+Found flash memory controller hifmc100.
+no found nand device.
+
+MMC/SD controller initialization.
+scan edges:2 p2f:5 f2p:7
+mix set temp-phase 2
+scan elemnts: startp:94 endp:88
+Tuning SampleClock. mix set phase:[02/07] ele:[07/14] 
+MMC/SD Card:
+    MID:         0x70
+    Read Block:  512 Bytes
+    Write Block: 512 Bytes
+    Chip Size:   7296M Bytes (High Capacity)
+    Name:        "M72808"
+    Chip Type:   MMC
+    Version:     5.1
+    Speed:       100000000Hz
+    Mode:        HS400
+    Voltage:     1.8V
+    Bus Width:   8bit
+    Boot Addr:   0 Bytes
+Net:   up, down, gmac0
+
+Boot Env on eMMC
+    Env Offset:          0x00100000
+    Env Size:            0x00010000
+    Env Range:           0x00010000
+Only HI3796MV2X chip support
+
+
+SDK Version: HiSTBAndroidV800R001C00SPC120_update_v2019061009
+
+set_serialno: MAGICNUM not setcount=0
+enter the gpio press revocery
+mac:e8:bb:3e:xx:xx:xx
+Reserve Memory
+    Start Addr:          0x3DBFE000
+    Bound Addr:          0x8D92000
+    Free  Addr:          0x3C7B6000
+    Alloc Block:  Addr         Size
+                  0x3D7FD000   0x400000
+                  0x3D4FC000   0x300000
+                  0x3D4F9000   0x2000
+                  0x3D478000   0x80000
+                  0x3D447000   0x30000
+                  0x3D148000   0x2FE000
+                  0x3C95D000   0x7EA000
+                  0x3C959000   0x3000
+                  0x3C7C3000   0x195000
+                  0x3C7B9000   0x9000
+                  0x3C7B6000   0x2000
+
+Press Ctrl+C to stop autoboot
+
+MMC read: dev # 0, block # 389120, count 16384 ... 16384 blocks read: OK
+
+168292745 Bytes/s
+Wrong Image Format for bootm command
+ERROR: can't get kernel image!
+
+MMC read: dev # 0, block # 225280, count 51200 ... 51200 blocks read: OK
+
+172572150 Bytes/s
+
+MMC read: dev # 0, block # 98304, count 60 ... 60 blocks read: OK
+
+52363636 Bytes/s
+## Booting kernel from Legacy Image at 01ffffc0 ...
+   Image Name:   Linux-4.9.118_D9
+   Image Type:   ARM Linux Kernel Image (uncompressed)
+   Data Size:    10354240 Bytes = 9.9 MiB
+   Load Address: 02000000
+   Entry Point:  02000000
+## Flattened Device Tree blob at 03ffc000
+   Booting using the fdt blob at 0x3ffc000
+   XIP Kernel Image ... OK
+OK
+Reserve Memory
+    Start Addr:          0x3DBFE000
+    Bound Addr:          0x8D92000
+    Free  Addr:          0x3C7B6000
+    Alloc Block:  Addr         Size
+                  0x3D7FD000   0x400000
+                  0x3D4FC000   0x300000
+                  0x3D4F9000   0x2000
+                  0x3D478000   0x80000
+                  0x3D447000   0x30000
+                  0x3D148000   0x2FE000
+                  0x3C95D000   0x7EA000
+                  0x3C959000   0x3000
+                  0x3C7C3000   0x195000
+                  0x3C7B9000   0x9000
+                  0x3C7B6000   0x2000
+
+ATAGS [0x00000100 - 0x000005BC], 1212Bytes
+
+Starting kernel ...
+
+Uncompressing Linux... done, booting the kernel.
+Booting Linux on physical CPU 0x0
+Linux version 4.9.118_D9 (rom@rom) (gcc version 4.9.4 20151028 (prerelease) (gcc-linaro-4.9-2016.02 + glibc-2.25 (Build by czyong) Thu Feb 23 17:07:45 CST 2017) ) #3518 SMP PREEMPT Fri Aug 29 16:20:40 CST 2025
+CPU: ARMv7 Processor [410fd034] revision 4 (ARMv7), cr=10c5383d
+CPU: div instructions available: patching division code
+CPU: PIPT / VIPT nonaliasing data cache, VIPT aliasing instruction cache
+initmrd: found no initmrd.
+OF: fdt:Machine model: Hisilicon
+cma: Reserved 44 MiB at 0x39800000
+cma: Reserved 4 MiB at 0x3d800000
+Memory policy: Data cache writealloc
+percpu: Embedded 15 pages/cpu @dfb01000 s31040 r8192 d22208 u61440
+Built 1 zonelists in Zone order, mobility grouping on.  Total pages: 251767
+Kernel command line: androidboot.hardware=bigfish androidboot.selinux=permissive androidboot.serialno=0123456789 console=ttyAMA0,115200 blkdevparts=mmcblk0:1M(fastboot),512K(bootargs),512K(bootargsbak),20M(reM
+log_buf_len individual max cpu contribution: 4096 bytes
+log_buf_len total cpu_extra contributions: 12288 bytes
+log_buf_len min size: 16384 bytes
+log_buf_len: 32768 bytes
+early log buf free: 13904(84%)
+PID hash table entries: 2048 (order: 1, 8192 bytes)
+Dentry cache hash table entries: 65536 (order: 6, 262144 bytes)
+Inode-cache hash table entries: 32768 (order: 5, 131072 bytes)
+Memory: 916052K/1011712K available (14336K kernel code, 1069K rwdata, 5320K rodata, 1024K init, 2796K bss, 46508K reserved, 49152K cma-reserved, 422696K highmem)
+Virtual kernel memory layout:
+    vector  : 0xffff0000 - 0xffff1000   (   4 kB)
+    fixmap  : 0xffc00000 - 0xfff00000   (3072 kB)
+    vmalloc : 0xe0800000 - 0xff800000   ( 496 MB)
+    lowmem  : 0xc0000000 - 0xe0400000   ( 516 MB)
+    pkmap   : 0xbfe00000 - 0xc0000000   (   2 MB)
+    modules : 0xbf000000 - 0xbfe00000   (  14 MB)
+      .text : 0xc0008000 - 0xc0f00000   (15328 kB)
+      .init : 0xc1500000 - 0xc1600000   (1024 kB)
+      .data : 0xc1600000 - 0xc170b7d0   (1070 kB)
+       .bss : 0xc170d000 - 0xc19c816c   (2797 kB)
+SLUB: HWalign=64, Order=0-3, MinObjects=0, CPUs=4, Nodes=1
+Preemptible hierarchical RCU implementation.
+        Build-time adjustment of leaf fanout to 32.
+NR_IRQS:352
+arm_arch_timer: Architected cp15 timer(s) running at 24.00MHz (phys).
+clocksource: arch_sys_counter: mask: 0xffffffffffffff max_cycles: 0x588fe9dc0, max_idle_ns: 440795202592 ns
+sched_clock: 56 bits at 24MHz, resolution 41ns, wraps every 4398046511097ns
+Switching to timer-based delay loop, resolution 41ns
+clocksource: hisp804: mask: 0xffffffff max_cycles: 0xffffffff, max_idle_ns: 79635851949 ns
+sched_clock: 32 bits at 24MHz, resolution 41ns, wraps every 89478484971ns
+Console: colour dummy device 80x30
+Calibrating delay loop (skipped), value calculated using timer frequency.. 48.00 BogoMIPS (lpj=24000)
+pid_max: default: 32768 minimum: 301
+Security Framework initialized
+SELinux:  Initializing.
+Mount-cache hash table entries: 1024 (order: 0, 4096 bytes)
+Mountpoint-cache hash table entries: 1024 (order: 0, 4096 bytes)
+CPU: Testing write buffer coherency: ok
+CPU0: update cpu_capacity 1024
+CPU0: thread -1, cpu 0, socket 0, mpidr 80000000
+Setting up static identity map for 0x100000 - 0x100058
+CPU: hi3798mv300
+CPU1: update cpu_capacity 1024
+CPU1: thread -1, cpu 1, socket 0, mpidr 80000001
+CPU2: update cpu_capacity 1024
+CPU2: thread -1, cpu 2, socket 0, mpidr 80000002
+CPU3: update cpu_capacity 1024
+CPU3: thread -1, cpu 3, socket 0, mpidr 80000003
+Brought up 4 CPUs
+SMP: Total of 4 processors activated (192.00 BogoMIPS).
+CPU: All CPU(s) started in SVC mode.
+CPU3: update max cpu_capacity 1024
+CPU1: update max cpu_capacity 1024
+VFP support v0.3: implementor 41 architecture 3 part 40 variant 3 rev 4
+clocksource: jiffies: mask: 0xffffffff max_cycles: 0xffffffff, max_idle_ns: 1911260446275000 ns
+futex hash table entries: 1024 (order: 4, 65536 bytes)
+PCIe read alloc area phyaddr 08  size 00000000
+PCIe write alloc area phyaddr 08  size 00000000
+NET: Registered protocol family 16
+DMA: preallocated 256 KiB pool for atomic coherent allocations
+hw-breakpoint: found 5 (+1 reserved) breakpoint and 4 watchpoint registers.
+hw-breakpoint: maximum watchpoint size is 8 bytes.
+Serial: AMBA PL011 UART driver
+pl061_gpio f8b20000.gpio0: PL061 GPIO chip @0xf8b20000 registered
+pl061_gpio f8b21000.gpio1: PL061 GPIO chip @0xf8b21000 registered
+pl061_gpio f8b22000.gpio2: PL061 GPIO chip @0xf8b22000 registered
+pl061_gpio f8b23000.gpio3: PL061 GPIO chip @0xf8b23000 registered
+pl061_gpio f8b24000.gpio4: PL061 GPIO chip @0xf8b24000 registered
+pl061_gpio f8004000.gpio5: PL061 GPIO chip @0xf8004000 registered
+pl061_gpio f8b26000.gpio6: PL061 GPIO chip @0xf8b26000 registered
+pl061_gpio f8b27000.gpio7: PL061 GPIO chip @0xf8b27000 registered
+pl061_gpio f8b28000.gpio8: PL061 GPIO chip @0xf8b28000 registered
+pl061_gpio f8b29000.gpio9: PL061 GPIO chip @0xf8b29000 registered
+f8b00000.uart: ttyAMA0 at MMIO 0xf8b00000 (irq = 107, base_baud = 0) is a PL011 rev2
+console [ttyAMA0] enabled
+f8b02000.uart: ttyAMA1 at MMIO 0xf8b02000 (irq = 108, base_baud = 0) is a PL011 rev2
+hisi_iommu_ptable_addr:phy 0x1ec00000    size:0x400000
+hisi_iommu_err_rdaddr :phy 0x1f715800    size:0x200
+hisi_iommu_err_wraddr :phy 0x1f715a00     size:0x200
+in hisi_iommu_domain_init start 
+in hisi_iommu_domain_init end 
+vgaarb: loaded
+SCSI subsystem initialized
+ssp-pl022 f8b1a000.spi: ARM PL022 driver, device ID: 0x00041022
+ssp-pl022 f8b1a000.spi: mapped registers from 0xf8b1a000 to f9b1a000
+spi_master spi0: will run message pump with realtime priority
+usbcore: registered new interface driver usbfs
+usbcore: registered new interface driver hub
+usbcore: registered new device driver usb
+media: Linux media interface: v0.10
+Linux video capture interface: v2.00
+Advanced Linux Sound Architecture Driver Initialized.
+Bluetooth: Core ver 2.22
+NET: Registered protocol family 31
+Bluetooth: HCI device and connection manager initialized
+Bluetooth: HCI socket layer initialized
+Bluetooth: L2CAP socket layer initialized
+Bluetooth: SCO socket layer initialized
+(NULL device *): use max freq 100000 instead
+(NULL device *): use max freq 100000 instead
+(NULL device *): use max freq 100000 instead
+virtual device initialization.
+[00:00:00:770 ERROR-Invalid]:MCE_Init[2516]:ERR: HI_DRV_PDM_GetMceParam
+[00:00:00:771 ERROR-Invalid]:MCE_Init[2528]:ERR: get PDM Param
+clocksource: Switched to clocksource hisp804
+VFS: Disk quotas dquot_6.6.0
+VFS: Dquot-cache hash table entries: 1024 (order 0, 4096 bytes)
+NET: Registered protocol family 2
+TCP established hash table entries: 4096 (order: 2, 16384 bytes)
+TCP bind hash table entries: 4096 (order: 3, 32768 bytes)
+TCP: Hash tables configured (established 4096 bind 4096)
+UDP hash table entries: 256 (order: 1, 8192 bytes)
+UDP-Lite hash table entries: 256 (order: 1, 8192 bytes)
+NET: Registered protocol family 1
+hw perfevents: enabled with armv7_cortex_a17 PMU driver, 7 counters available
+audit: initializing netlink subsys (disabled)
+audit: type=2000 audit(0.866:1): initialized
+workingset: timestamp_bits=14 max_order=18 bucket_order=4
+squashfs: version 4.0 (2009/01/31) Phillip Lougher
+Registering sdcardfs 0.1
+jffs2: version 2.2. (NAND) © 2001-2006 Red Hat, Inc.
+fuse init (API version 7.26)
+bounce: pool size: 64 pages
+Block layer SCSI generic (bsg) driver version 0.4 loaded (major 250)
+io scheduler noop registered
+io scheduler deadline registered (default)
+io scheduler cfq registered
+hiahci-phy: registered new sata phy driver
+input: Hi keyboard as /devices/virtual/input/input0
+input: Hi mouse as /devices/virtual/input/input1
+input: qwerty as /devices/virtual/input/input2
+Hi Android vinput driver init successful!
+hiotg: registered new interface otg driver
+rtc-cputimer f8a2b020.rtc: rtc core: registered rtc-cputimer as rtc0
+Mali: Mali device driver loaded
+misc hi_dbe: hi_dbe ready
+brd: module loaded
+loop: module loaded
+zram: Added device: zram0
+hifmc100: registerd new interface driver hifmc100.
+libphy: Fixed MDIO Bus: probed
+tun: Universal TUN/TAP device driver, 1.6
+tun: (C) 1999-2004 Max Krasnyansky <maxk@qualcomm.com>
+FEPHY:addr=2, la_am=0xc, ldo_am=0x4, r_tuning=0x1f
+libphy: himii: probed
+hi_eth: attached port 0 PHY 2 to driver HiSilicon Festa s28v112
+libphy: higmac_mii_bus: probed
+Eth phy 1 has invalid OUI:0x0
+PPP generic driver version 2.4.2
+PPP BSD Compression module registered
+PPP Deflate Compression module registered
+PPP MPPE Compression module registered
+NET: Registered protocol family 24
+usbcore: registered new interface driver asix
+usbcore: registered new interface driver ax88179_178a
+usbcore: registered new interface driver cdc_ether
+usbcore: registered new interface driver dm9601
+usbcore: registered new interface driver net1080
+usbcore: registered new interface driver cdc_subset
+usbcore: registered new interface driver zaurus
+usbcore: registered new interface driver cdc_ncm
+ehci_hcd: USB 2.0 'Enhanced' Host Controller (EHCI) Driver
+ehci-pci: EHCI PCI platform driver
+ohci_hcd: USB 1.1 'Open' Host Controller (OHCI) Driver
+ohci-pci: OHCI PCI platform driver
+usbcore: registered new interface driver cdc_wdm
+usbcore: registered new interface driver usb-storage
+usbcore: registered new interface driver usbserial
+usbcore: registered new interface driver option
+usbserial: USB Serial support registered for GSM modem (1-port)
+hiudc: version 3.00a 10-AUG-2012
+Core Release: 3.10a
+Setting default values for core params
+
+CTRL-A Z for help | 115200 8N1 | NOR | Minicom 2.9 | VT102 | Online 0:0 | ttyUSB0                                                                                                                               
