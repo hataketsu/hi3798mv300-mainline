@@ -1,0 +1,24 @@
+From cd7e7c3613810e835fdec7e31b294f61e6fde5ce Mon Sep 17 00:00:00 2001
+From: hi3798 port <port@localhost>
+Date: Tue, 28 Jul 2026 01:31:12 +0000
+Subject: [PATCH 2/2] arm64: dts: hisilicon: drop the dangling hc2910-2aghd07
+ entry
+
+The Makefile lists hi3798mv200-hc2910-2aghd07.dtb but no such .dts exists,
+so every dtbs build stops there and the remaining hisilicon dtbs are skipped.
+---
+ arch/arm64/boot/dts/hisilicon/Makefile | 1 -
+ 1 file changed, 1 deletion(-)
+
+diff --git a/arch/arm64/boot/dts/hisilicon/Makefile b/arch/arm64/boot/dts/hisilicon/Makefile
+index 2a425e4473f6..c1bcfbb5d96b 100644
+--- a/arch/arm64/boot/dts/hisilicon/Makefile
++++ b/arch/arm64/boot/dts/hisilicon/Makefile
+@@ -3,7 +3,6 @@ dtb-$(CONFIG_ARCH_HISI) += hi3660-hikey960.dtb
+ dtb-$(CONFIG_ARCH_HISI) += hi3670-hikey970.dtb
+ dtb-$(CONFIG_ARCH_HISI) += hi3798cv200-poplar.dtb
+ dtb-$(CONFIG_ARCH_HISI) += hi3798mv200-hc2910-2aghd05.dtb
+-dtb-$(CONFIG_ARCH_HISI) += hi3798mv200-hc2910-2aghd07.dtb
+ dtb-$(CONFIG_ARCH_HISI) += hi6220-hikey.dtb
+ dtb-$(CONFIG_ARCH_HISI) += hip05-d02.dtb
+ dtb-$(CONFIG_ARCH_HISI) += hip06-d03.dtb

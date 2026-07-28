@@ -1,0 +1,162 @@
+// SPDX-License-Identifier: GPL-2.0
+/*
+ * DTS for an unbranded Hi3798MV300 set-top box.
+ *
+ * The vendor device tree carries no board name -- its model is the bare string
+ * "Hisilicon" and its compatible is "hi3798mv200-series" -- so the board name
+ * here is provisional and describes the SoC rather than the product.
+ *
+ * Released under the GPLv2 only.
+ */
+
+/dts-v1/;
+
+#include "hi3798mv200.dtsi"
+
+/ {
+	model = "Hi3798MV300 TV box";
+	compatible = "hisilicon,hi3798mv300-tvbox", "hisilicon,hi3798mv200";
+
+	aliases {
+		serial0 = &uart0;
+		mmc0 = &emmc;
+		mmc1 = &sd0;
+		ethernet0 = &femac;
+	};
+
+	chosen {
+		stdout-path = "serial0:115200n8";
+	};
+
+	/*
+	 * 1 GiB. The stock bootloader's `getinfo ddrfree` reports free DDR as
+	 * 0x1000000..0x40000000, and TF-A is built POPLAR_DRAM_SIZE=one_gig to
+	 * match. The HC2910 DTS declares 0x80000000; carrying that over here
+	 * would map half a gigabyte that does not exist.
+	 */
+	memory@0 {
+		device_type = "memory";
+		reg = <0x0 0x0 0x0 0x40000000>;
+	};
+
+	reserved-memory {
+		/*
+		 * BL31 stays resident after hand-off and must not be handed to
+		 * the page allocator. Its address follows from the l-loader
+		 * link base this port uses:
+		 *
+		 *   LLOADER_TEXT_BASE 0x02000000
+		 *   BL1_BASE          0x0200f000   (matches the boot log,
+		 *                                  "CPU0 executes at 0x0200f000")
+		 *   BL2_BASE          0x0201f000   (+ BL1_SIZE  0x10000)
+		 *   BL31_BASE         0x0202c000   (+ BL2_SIZE  0xd000)
+		 *   BL31_LIMIT        0x0203f000   (+ BL31_SIZE 0x13000)
+		 *
+		 * 0x02000000 + 256 KiB covers the whole staging area in one
+		 * aligned block. The sml@c00000 reservation inherited from the
+		 * dtsi describes the *default* TF-A layout, which this port
+		 * does not use -- 0x00C00000 is where the stock bootloader is
+		 * linked, so l-loader was moved off it.
+		 */
+		bl31@2000000 {
+			reg = <0x0 0x02000000 0x0 0x00040000>;
+			no-map;
+		};
+	};
+};
+
+&uart0 {
+	status = "okay";
+};
+
+&emmc {
+	fifo-depth = <256>;
+	clock-frequency = <50000000>;
+	max-frequency = <150000000>;
+	bus-width = <8>;
+	cap-mmc-highspeed;
+	mmc-ddr-1_8v;
+	mmc-hs200-1_8v;
+	mmc-hs400-1_8v;
+	non-removable;
+	status = "okay";
+};
+
+&sd0 {
+	fifo-depth = <256>;
+	clock-frequency = <150000000>;
+	bus-width = <4>;
+	cap-sd-highspeed;
+	sd-uhs-sdr12;
+	sd-uhs-sdr25;
+	sd-uhs-sdr50;
+	sd-uhs-sdr104;
+	sd-uhs-ddr50;
+	status = "okay";
+};
+
+/*
+ * The FE PHY sits at MDIO address 2 on this board, not the address 1 the dtsi
+ * assumes. Both the stock environment (phy_addr=2,1) and the stock bootloader's
+ * own probe ("Eth up port phy at 0x02 is connect") agree on this.
+ */
+&mdio {
+	/delete-node/ ethernet-phy@1;
+
+	tvbox_fephy: ethernet-phy@2 {
+		reg = <2>;
+		#phy-cells = <0>;
+	};
+};
+
+&femac {
+	phy-handle = <&tvbox_fephy>;
+	status = "okay";
+};
+
+&gpio0 {
+	status = "okay";
+};
+
+&gpio1 {
+	status = "okay";
+};
+
+&gpio2 {
+	status = "okay";
+};
+
+&gpio3 {
+	status = "okay";
+};
+
+&gpio4 {
+	status = "okay";
+};
+
+&gpio6 {
+	status = "okay";
+};
+
+&gpio7 {
+	status = "okay";
+};
+
+&gpio8 {
+	status = "okay";
+};
+
+&gpio9 {
+	status = "okay";
+};
+
+&wdg0 {
+	status = "okay";
+};
+
+/*
+ * USB (ehci, ohci, xhci, dwc3, combphy, usb2_phy1, usb2_phy2) is deliberately
+ * left disabled for first boot. None of it is needed to reach a console, and a
+ * PHY that fails to come up can hang the probe before there is any way to see
+ * why. Enable it once the board is known to boot.
+ */

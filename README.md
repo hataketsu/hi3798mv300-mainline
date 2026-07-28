@@ -17,10 +17,10 @@ The stock firmware is Android 9 (API 28) on kernel 4.9.118 from the HiSilicon
 >
 > **ARM Trusted Firmware and mainline U-Boot 2026.07 now boot on this box in
 > AArch64**, loaded entirely into RAM with eMMC untouched — see
-> [docs/aarch64-bringup.md](docs/aarch64-bringup.md). The kernel side is still
-> blocked on the CRG driver.
-> The **kernel** is the gap: the CRG clock & reset driver was never merged, and
-> there is no SoC device tree — see [docs/mainline-status.md](docs/mainline-status.md).
+> [docs/aarch64-bringup.md](docs/aarch64-bringup.md).
+> A **v7.2-rc5 kernel now builds** for this board, with the out-of-tree CRG clock
+> driver rebased forward and a board device tree written for this box. It has not
+> been booted yet — see [docs/kernel.md](docs/kernel.md).
 
 ## The box
 
@@ -49,16 +49,21 @@ docs/
   secure-boot.md       how to tell whether the OTP fuse is burned (it is not)
   tftp-boot.md         booting a kernel from RAM over Ethernet, touching no flash
   aarch64-bringup.md   TF-A + mainline U-Boot running in 64-bit mode, no eMMC writes
-  uart-access.md       how to get a root shell over the serial console
+  kernel.md            rebasing the out-of-tree CRG driver onto v7.2-rc5, board DTS
+  uart-access.md       serial console wiring, flow control, reaching the U-Boot prompt
 dts/
+  hi3798mv300-tvbox.dts  board device tree for this box
   vendor/              device tree decompiled from the stock firmware (reference)
   mainline/            work-in-progress mainline .dtsi / .dts
+patches/
+  kernel/              fixups needed on top of the out-of-tree kernel series
 extracted/
   uboot-env.txt        U-Boot environment as plain text
 logs/
   stock-boot-uart.log  full stock boot over UART (MAC redacted)
 scripts/
   tftpd.py             dependency-free read-only TFTP server for the host
+  uart-term.py         serial terminal with hardware flow control forced off
   uart-cmd.py          run a command on the box over the serial console
   extract-dtb.py       pull FDT blobs out of boot/recovery/dtbo images
   dump-partitions.sh   dump every firmware partition to external storage

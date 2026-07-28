@@ -1,0 +1,30 @@
+From 15e3599381226edfcf1b60b6b72ea051fa774b1b Mon Sep 17 00:00:00 2001
+From: hi3798 port <port@localhost>
+Date: Tue, 28 Jul 2026 01:17:50 +0000
+Subject: [PATCH 1/2] clk: hisilicon: hi3798mv200: return void from remove
+
+The platform_driver remove callback lost its int return value upstream;
+keeping the old signature fails to build with -Werror=incompatible-pointer-types.
+---
+ drivers/clk/hisilicon/crg-hi3798mv200.c | 3 +--
+ 1 file changed, 1 insertion(+), 2 deletions(-)
+
+diff --git a/drivers/clk/hisilicon/crg-hi3798mv200.c b/drivers/clk/hisilicon/crg-hi3798mv200.c
+index 5a2410d0a0b9..ea0cedc2ddda 100644
+--- a/drivers/clk/hisilicon/crg-hi3798mv200.c
++++ b/drivers/clk/hisilicon/crg-hi3798mv200.c
+@@ -457,13 +457,12 @@ static int hi3798mv200_crg_probe(struct platform_device *pdev)
+ 	return 0;
+ }
+ 
+-static int hi3798mv200_crg_remove(struct platform_device *pdev)
++static void hi3798mv200_crg_remove(struct platform_device *pdev)
+ {
+ 	struct hisi_crg_dev *crg = platform_get_drvdata(pdev);
+ 
+ 	hisi_reset_exit(crg->rstc);
+ 	crg->funcs->unregister_clks(pdev);
+-	return 0;
+ }
+ 
+ static struct platform_driver hi3798mv200_crg_driver = {
