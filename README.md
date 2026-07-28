@@ -18,9 +18,11 @@ The stock firmware is Android 9 (API 28) on kernel 4.9.118 from the HiSilicon
 > **ARM Trusted Firmware and mainline U-Boot 2026.07 now boot on this box in
 > AArch64**, loaded entirely into RAM with eMMC untouched — see
 > [docs/aarch64-bringup.md](docs/aarch64-bringup.md).
-> A **v7.2-rc5 kernel now builds** for this board, with the out-of-tree CRG clock
-> driver rebased forward and a board device tree written for this box. It has not
-> been booted yet — see [docs/kernel.md](docs/kernel.md).
+> A **mainline v7.2-rc5 kernel now boots on this box**, with the out-of-tree CRG
+> clock driver rebased forward and a board device tree written for this board.
+> All four cores come up through PSCI and cpufreq reads the real CPU frequency
+> off the clock driver, which confirms the MV200 CRG driver works on the MV300.
+> It stops at the missing rootfs — see [docs/kernel.md](docs/kernel.md).
 
 ## The box
 

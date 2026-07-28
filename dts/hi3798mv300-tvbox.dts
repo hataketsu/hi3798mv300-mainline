@@ -69,7 +69,25 @@
 	status = "okay";
 };
 
+/*
+ * Both MMC nodes carry a "default" pinctrl state, and mainline has no pinctrl
+ * driver for this SoC yet -- drivers/pinctrl/ contains no HiSilicon STB driver
+ * at all, and Yang Xiwen's b4/pinctrl branch has not been rebased forward.
+ *
+ * A pinctrl state that no provider can supply makes pinctrl_bind_pins() return
+ * -EPROBE_DEFER, so the device defers forever. Deferred probe is silent, so the
+ * controller simply never appears and the boot stops at "Waiting for root
+ * device" with nothing else logged.
+ *
+ * Dropping the states is safe during bring-up because the stock bootloader has
+ * already muxed these pins -- it boots Android off the same eMMC. Restore them
+ * once a pinctrl driver exists, or the mux will be wrong on any boot path that
+ * does not go through the vendor bootloader first.
+ */
 &emmc {
+	/delete-property/ pinctrl-0;
+	/delete-property/ pinctrl-names;
+
 	fifo-depth = <256>;
 	clock-frequency = <50000000>;
 	max-frequency = <150000000>;
@@ -83,6 +101,9 @@
 };
 
 &sd0 {
+	/delete-property/ pinctrl-0;
+	/delete-property/ pinctrl-names;
+
 	fifo-depth = <256>;
 	clock-frequency = <150000000>;
 	bus-width = <4>;
@@ -155,8 +176,26 @@
 };
 
 /*
- * USB (ehci, ohci, xhci, dwc3, combphy, usb2_phy1, usb2_phy2) is deliberately
- * left disabled for first boot. None of it is needed to reach a console, and a
- * PHY that fails to come up can hang the probe before there is any way to see
- * why. Enable it once the board is known to boot.
+ * USB stays disabled, and not out of caution -- enabling it was tried and it
+ * takes the kernel down. Two separate mainline gaps:
+ *
+ *   hisi-inno-phy f9865000.usb-phy-bus:usb-phy: error -EINVAL: invalid resource
+ *   hisi-inno-phy f9960000.usb-phy-bus:usb-phy: probe failed with error -22
+ *
+ * The dtsi puts the PHY node inside a `simple-pm-bus` with `ranges` and gives
+ * it no `reg` of its own; the upstream phy-hisi-inno-usb2 driver expects one
+ * and bails out. With no PHY, ehci and ohci defer forever.
+ *
+ * dwc3 is worse -- it oopses rather than failing:
+ *
+ *   Unable to handle kernel paging request at virtual address a1ff001470cd984e
+ *   pc : kobject_get  lr : get_device
+ *     __fwnode_reset_control_get / fwnode_reset_control_array_get
+ *     dwc3_of_simple_probe
+ *   Kernel panic - not syncing: Attempted to kill init!
+ *
+ * dwc3-of-simple walks a bad pointer resolving `resets = <&crg 0xb0 12>`, and
+ * because it happens in an initcall on PID 1 the whole boot dies with it.
+ *
+ * Both need the out-of-tree work rebased forward before USB can be turned on.
  */

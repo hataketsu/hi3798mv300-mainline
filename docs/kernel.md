@@ -1,8 +1,11 @@
 # Building a mainline kernel for this board
 
-**Status: builds.** A v7.2-rc5 kernel with SoC clock support and a board device
-tree for this box compiles cleanly. It has **not been booted yet** — see
-[Untested](#untested) below.
+**Status: boots.** A v7.2-rc5 kernel with SoC clock support and a board device
+tree for this box reaches userspace hand-off on real hardware. All four cores
+come up through PSCI, the console hands over from `earlycon` to the real PL011
+driver, and cpufreq reads the true CPU frequency off the CRG clock driver. It
+stops at `Unable to mount root fs` because there is no rootfs yet — see
+[First boot](#first-boot).
 
 ## What mainline already has
 
@@ -142,26 +145,196 @@ make ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- Image dtbs -j"$(nproc)"
 `default ARCH_HISI`. Result: `arch/arm64/boot/Image` (~50 MB, uncompressed
 defconfig) and `hi3798mv300-tvbox.dtb` (~14 KB).
 
-## Untested
+## Two options defconfig does not set
 
-The kernel has not run on hardware yet. When it does, the sequence is the
-AArch64 chain from [aarch64-bringup.md](aarch64-bringup.md) followed by a
-`booti` from the mainline U-Boot prompt, with load addresses clear of the
-`0x02000000` staging area:
+`arm64 defconfig` leaves both of these off, and neither is reachable through
+`ARCH_HISI`:
+
+```sh
+./scripts/config --enable CONFIG_MMC_DW_HI3798MV200 --enable CONFIG_HISI_FEMAC
+make ARCH=arm64 olddefconfig
+```
+
+Without the first there is no eMMC and no `mmcblk0`, so no rootfs. Without the
+second there is no Ethernet. Confirm they linked rather than trusting `.config`:
+
+```sh
+grep -c dw_mci_hi3798mv200 System.map    # nonzero
+grep -c hisi_femac System.map            # nonzero
+```
+
+`CONFIG_HISI_FEMAC` only builds the upstream driver, which knows nothing about
+the mv200 clock/reset layout. `b4/net` is still needed for working Ethernet.
+
+## `earlycon` needs the CPU address, not the DT address
+
+The single thing that cost the most time here. `hi3798mv200.dtsi` declares the
+console as `serial@8b00000` with `reg = <0x8b00000 0x1000>`, so
+`earlycon=pl011,0x8b00000` looks obviously right. It is wrong, and it hangs the
+kernel with **no output whatsoever** past `Starting kernel ...`.
+
+The `soc` node translates:
+
+```dts
+soc {
+    ranges = <0x0 0x0 0xf0000000 0x10000000>;
+};
+```
+
+Bus address `0x0` is CPU address `0xf0000000`, so `serial@8b00000` really lives
+at **`0xf8b00000`** — the address the vendor device tree uses directly.
+Addresses in `reg` are bus addresses; `earlycon` takes a CPU address and does no
+translation, because it runs before the DT is walked.
+
+An unmapped `earlycon` address is not a soft failure. The kernel writes to it
+inside `parse_early_param`, long before the console or any fault handling
+exists, so it dies silently and looks exactly like a kernel that never started.
+
+Check an address from the U-Boot prompt before booting — this prints `A` on the
+console if it is the UART data register:
+
+```
+mw.l 0xf8b00000 0x41
+```
+
+## First boot
+
+The sequence is the AArch64 chain from
+[aarch64-bringup.md](aarch64-bringup.md), then `booti` from the mainline U-Boot
+prompt. Load addresses stay clear of the `0x02000000` staging area, and
+everything is fetched over TFTP by the *stock* bootloader before `go`, because
+mainline U-Boot on this board has neither eMMC nor Ethernet:
 
 ```
 tftp 0x10000000 Image
 tftp 0x0f000000 tvbox.dtb
+tftp 0x02000000 l-loader.bin
+go 0x0203F000
+```
+
+```
+setenv bootargs "earlycon=pl011,mmio32,0xf8b00000 console=ttyAMA0,115200n8 nokaslr ignore_loglevel"
 booti 0x10000000 - 0x0f000000
 ```
 
-Things worth expecting to go wrong, in order of likelihood:
+DRAM survives the AArch32→AArch64 warm reset, so the kernel and DTB loaded
+before `go` are still in place afterwards.
 
-* No console output at all past `Starting kernel`, because `earlycon` is not on
-  the command line. Add `earlycon=pl011,0x8b00000` before blaming the port.
-* The CRG driver's register offsets were derived for the MV200. This SoC is the
-  **MV300**; the vendor device tree calls the family `hi3798mv200-series`, which
-  is the reason for treating them as compatible, but that is an assumption this
-  boot will be the first real test of.
-* FEMAC has no upstream mv200 support, so `b4/net` is still needed for
-  networking. It was left out here to keep the first boot minimal.
+What the first boot proved:
+
+```
+Machine model: Hi3798MV300 TV box
+earlycon: pl11 at MMIO32 0x00000000f8b00000
+OF: reserved mem: 0x02000000..0x0203ffff nomap non-reusable bl31@2000000
+psci: PSCIv1.1 detected in firmware
+smp: Brought up 1 node, 4 CPUs
+arch_timer: cp15 timer running at 24.00MHz (phys)
+f8b00000.serial: ttyAMA0 at MMIO 0xf8b00000 (irq = 14) is a PL011 rev2
+printk: console [ttyAMA0] enabled
+cpufreq: CPU0: Running at unlisted initial frequency: 798000 kHz
+clk: Disabling unused clocks
+```
+
+The `cpufreq` line is the one that matters most. Reading a real 798 MHz off the
+hardware means the **MV200 CRG driver works unmodified on the MV300** — the
+central assumption of this port, and the thing there was no way to test without
+booting. All four cores answering PSCI also confirms TF-A's hand-off and that
+the `bl31@2000000` reservation is correct; the page allocator never touched
+BL31's memory.
+
+It ends in `Kernel panic - not syncing: VFS: Unable to mount root fs on
+unknown-block(0,0)`, which is just the missing rootfs.
+
+## Reaching userspace
+
+There is no working storage or network driver yet — see [What still does not
+probe](#what-still-does-not-probe) — so the rootfs has to travel inside the
+kernel. An embedded initramfs needs no block device, no PHY and no bootloader
+argument beyond the console:
+
+```sh
+curl -O https://dl-cdn.alpinelinux.org/alpine/v3.24/releases/aarch64/alpine-minirootfs-3.24.1-aarch64.tar.gz
+mkdir initramfs && tar xzf alpine-minirootfs-*.tar.gz -C initramfs
+ln -sf /bin/busybox initramfs/init
+
+cd linux
+./scripts/config --set-str CONFIG_INITRAMFS_SOURCE "$PWD/../initramfs" \
+                 --set-val CONFIG_INITRAMFS_ROOT_UID 0 \
+                 --set-val CONFIG_INITRAMFS_ROOT_GID 0
+make ARCH=arm64 olddefconfig
+make ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- Image dtbs -j"$(nproc)"
+```
+
+`Image` grows from 50.9 MB to 54.9 MB. Give the rootfs an `/etc/inittab` that
+skips getty entirely — a login prompt is one more thing to get wrong this early:
+
+```
+::sysinit:/bin/mount -t proc proc /proc
+::sysinit:/bin/mount -t sysfs sysfs /sys
+::sysinit:/bin/mount -t devtmpfs devtmpfs /dev
+ttyAMA0::respawn:/bin/sh -l
+```
+
+Boot it with no `root=` at all. The kernel unpacks the initramfs and runs
+`/init` directly:
+
+```
+setenv bootargs "earlycon=pl011,mmio32,0xf8b00000 console=ttyAMA0,115200n8 nokaslr"
+booti 0x10000000 - 0x0f000000
+```
+
+This lands on a shell. From there `cpufreq` reports the CPU running at 1.2 GHz
+under load, up from the 798 MHz it booted at, so the CRG driver is not just
+reading rates but setting them.
+
+### Loading from a USB stick instead of TFTP
+
+The *vendor* bootloader has working USB, even though the mainline kernel does
+not. That removes the dependency on Ethernet, which is worth doing because a
+50 MB TFTP transfer over a marginal cable fails halfway and wastes a cycle:
+
+```
+usb start
+fatload usb 0:1 0x10000000 Image
+fatload usb 0:1 0x0f000000 tvbox.dtb
+fatload usb 0:1 0x02000000 l-loader.bin
+go 0x0203F000
+```
+
+`usb start` finds nothing on the first call after a cold boot and finds the
+stick on the second — run it twice.
+
+## What still does not probe
+
+Mount debugfs and read the kernel's own record instead of guessing. Deferred
+probe is silent, so a driver that never runs looks identical to one that is not
+compiled in:
+
+```sh
+mount -t debugfs none /sys/kernel/debug
+cat /sys/kernel/debug/devices_deferred
+```
+
+```
+f8b20000.gpio ... f8b29000.gpio
+f8a2c000.watchdog       sp805-wdt: Can not get reset
+f9820000.mmc            dwmmc_hi3798mv200: parse dt failed
+f9830000.mmc            dwmmc_hi3798mv200: parse dt failed
+```
+
+Both MMC controllers stop in `dw_mci_parse_dt`, at
+`devm_reset_control_get_optional_exclusive(dev, "reset")`. The watchdog names
+the same cause outright. The GPIO banks defer separately, on the
+`gpio-ranges = <&ioconfig ...>` in the dtsi that needs a pinctrl driver.
+
+Dropping the `pinctrl-0` / `pinctrl-names` properties from the MMC nodes was
+necessary but not sufficient: with them, the controllers never reached the
+driver at all; without them they reach it and stop on the reset lookup instead.
+
+USB is worse than deferred — turning it on kills the boot. See the comment
+block in [`../dts/hi3798mv300-tvbox.dts`](../dts/hi3798mv300-tvbox.dts) for the
+two failures, one of which oopses inside `dwc3_of_simple_probe` on PID 1.
+
+`hisi-femac` registers as a driver and `f9c30000.ethernet` exists as a device,
+but no `eth0` appears and it is not in the deferred list. The upstream driver
+has no mv200 support; `b4/net` is the fix.
