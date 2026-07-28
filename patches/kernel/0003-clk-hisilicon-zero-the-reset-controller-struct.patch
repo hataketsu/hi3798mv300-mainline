@@ -1,0 +1,75 @@
+From cab284d1cf97d131c6332e7d9164504a41b2f829 Mon Sep 17 00:00:00 2001
+From: hi3798 port <port@localhost>
+Date: Tue, 28 Jul 2026 16:02:55 +0000
+Subject: [PATCH] clk: hisilicon: zero the reset controller struct before
+ registering
+
+hisi_reset_init() allocates struct hisi_reset_controller with devm_kmalloc()
+and then fills in only five fields of the embedded reset_controller_dev:
+owner, ops, of_node, of_reset_n_cells and of_xlate. Everything else keeps
+whatever was in the heap.
+
+That was survivable until the reset core grew fwnode support. It now rejects
+a controller that supplies both an of_node and an fwnode:
+
+	if ((rcdev->of_node && rcdev->fwnode) ||
+	    (rcdev->of_xlate && rcdev->fwnode_xlate))
+		return -EINVAL;
+
+rcdev->fwnode and rcdev->fwnode_xlate are uninitialised here, so registration
+fails whenever the garbage happens to be non-NULL.
+
+hisi_reset_init() ignores the return value, so nothing is logged. The
+controller is simply absent from reset_controller_list, and every consumer
+that names it resolves to -EPROBE_DEFER and defers forever -- silently, since
+deferred probe prints nothing. On Hi3798MV200/MV300 that takes out both MMC
+controllers and the watchdog:
+
+	f8a2c000.watchdog	sp805-wdt: Can not get reset
+	f9820000.mmc		dwmmc_hi3798mv200: parse dt failed
+	f9830000.mmc		dwmmc_hi3798mv200: parse dt failed
+
+Consumers that reach further into the reset core fare worse. rcdev->dev is
+uninitialised too, and dwc3-of-simple dereferences it:
+
+	Unable to handle kernel paging request at virtual address a1ff001470cd984e
+	pc : kobject_get	lr : get_device
+	  __fwnode_reset_control_get
+	  fwnode_reset_control_array_get
+	  dwc3_of_simple_probe
+	Kernel panic - not syncing: Attempted to kill init!
+
+Use devm_kzalloc(), and stop discarding the registration error so a future
+failure is visible instead of appearing as an unexplained deferred probe.
+
+Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>
+---
+ drivers/clk/hisilicon/reset.c | 5 +++--
+ 1 file changed, 3 insertions(+), 2 deletions(-)
+
+diff --git a/drivers/clk/hisilicon/reset.c b/drivers/clk/hisilicon/reset.c
+index 93cee17db8b1..90d9eb372cbe 100644
+--- a/drivers/clk/hisilicon/reset.c
++++ b/drivers/clk/hisilicon/reset.c
+@@ -91,7 +91,7 @@ struct hisi_reset_controller *hisi_reset_init(struct platform_device *pdev)
+ {
+ 	struct hisi_reset_controller *rstc;
+ 
+-	rstc = devm_kmalloc(&pdev->dev, sizeof(*rstc), GFP_KERNEL);
++	rstc = devm_kzalloc(&pdev->dev, sizeof(*rstc), GFP_KERNEL);
+ 	if (!rstc)
+ 		return NULL;
+ 
+@@ -105,7 +105,8 @@ struct hisi_reset_controller *hisi_reset_init(struct platform_device *pdev)
+ 	rstc->rcdev.of_node = pdev->dev.of_node;
+ 	rstc->rcdev.of_reset_n_cells = 2;
+ 	rstc->rcdev.of_xlate = hisi_reset_of_xlate;
+-	reset_controller_register(&rstc->rcdev);
++	if (reset_controller_register(&rstc->rcdev))
++		return NULL;
+ 
+ 	return rstc;
+ }
+-- 
+2.43.0
+

@@ -331,10 +331,74 @@ Dropping the `pinctrl-0` / `pinctrl-names` properties from the MMC nodes was
 necessary but not sufficient: with them, the controllers never reached the
 driver at all; without them they reach it and stop on the reset lookup instead.
 
-USB is worse than deferred — turning it on kills the boot. See the comment
-block in [`../dts/hi3798mv300-tvbox.dts`](../dts/hi3798mv300-tvbox.dts) for the
-two failures, one of which oopses inside `dwc3_of_simple_probe` on PID 1.
+## The reset controller never registers
 
-`hisi-femac` registers as a driver and `f9c30000.ethernet` exists as a device,
-but no `eth0` appears and it is not in the deferred list. The upstream driver
-has no mv200 support; `b4/net` is the fix.
+All of the above traces back to one line in `drivers/clk/hisilicon/reset.c`.
+
+The obvious suspects were all wrong, and worth listing because each looked
+convincing. The CRG *is* bound — `/sys/bus/platform/drivers/hi3798mv200-crg/`
+holds `f8a22000.clock-reset-controller`. Its MMIO region *is* claimed, per
+`/proc/iomem`. Its clocks *are* registered, and `clk_summary` shows the whole
+tree with real rates. So `hisi_reset_init()` ran to completion, which means
+`reset_controller_register()` was called.
+
+It was called, and it failed. `hisi_reset_init()` allocates with
+`devm_kmalloc()` and sets exactly five fields of the embedded
+`reset_controller_dev`. The rest keeps whatever was on the heap. Since the
+reset core grew fwnode support it rejects that:
+
+```c
+	if ((rcdev->of_node && rcdev->fwnode) ||
+	    (rcdev->of_xlate && rcdev->fwnode_xlate))
+		return -EINVAL;
+```
+
+`rcdev->fwnode` is uninitialised, so registration fails whenever the garbage is
+non-NULL — and the return value is discarded, so nothing is logged. The
+controller is absent from `reset_controller_list`, every consumer naming it
+resolves to `-EPROBE_DEFER`, and deferred probe is silent. A failure with no
+message, caused by an error that was thrown away.
+
+The dwc3 oops is the same bug seen from the other side: `rcdev->dev` is
+uninitialised too, and `__fwnode_reset_control_get` calls `get_device()` on it.
+`a1ff001470cd984e` in the trace is heap garbage.
+
+Fixed in
+[`patches/kernel/0003-*.patch`](../patches/kernel/) — `devm_kzalloc()`, and
+stop discarding the registration error. This is not board-specific; it affects
+every HiSilicon platform that calls `hisi_reset_init()`.
+
+With it applied:
+
+```
+sp805-wdt f8a2c000.watchdog: registration successful
+dwmmc_hi3798mv200 f9830000.mmc: DW MMC controller at irq 26,32 bit host data width,256 deep fifo
+mmc0: new HS400 MMC card at address 0001
+mmcblk0: mmc0:0001 M72808 7.13 GiB
+mmcblk0boot0 / mmcblk0boot1 / mmcblk0rpmb
+```
+
+eMMC runs at HS400/150 MHz. `devices_deferred` drops to the GPIO banks alone.
+
+## Still open
+
+**No partition nodes.** `/proc/partitions` lists `mmcblk0` and the two boot
+areas, nothing else. The eMMC carries no MBR or GPT — the vendor describes its
+layout entirely through `blkdevparts=mmcblk0:1M(fastboot),512K(bootargs),...`
+on the kernel command line. Reading it needs `CONFIG_CMDLINE_PARTITION` plus
+that argument, copied from
+[`extracted/uboot-env.txt`](../extracted/uboot-env.txt).
+
+**`Failed to set rate to 400000`**, repeatedly, from both controllers. The card
+still enumerates because dw_mmc falls back to its own divider, but `clk_set_rate`
+on the CIU clock is not doing what the driver asks.
+
+**GPIO banks defer** on `gpio-ranges` pointing at a pinctrl node with no driver.
+
+**Ethernet.** `hisi-femac` registers and `f9c30000.ethernet` exists, but no
+`eth0` appears and it is not in the deferred list. The upstream driver has no
+mv200 support; `b4/net` is the fix.
+
+**USB** is still disabled here. The dwc3 oops should be gone now that the reset
+struct is zeroed, but the inno PHY `reg` mismatch is a separate problem and has
+not been retried.

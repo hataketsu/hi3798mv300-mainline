@@ -22,7 +22,9 @@ The stock firmware is Android 9 (API 28) on kernel 4.9.118 from the HiSilicon
 > clock driver rebased forward and a board device tree written for this board.
 > All four cores come up through PSCI and cpufreq reads the real CPU frequency
 > off the clock driver, which confirms the MV200 CRG driver works on the MV300.
-> It stops at the missing rootfs — see [docs/kernel.md](docs/kernel.md).
+> **eMMC works too**, at HS400/150 MHz, after fixing an upstream bug that left
+> the HiSilicon reset controller silently unregistered — see
+> [docs/kernel.md](docs/kernel.md) and [patches/kernel/](patches/kernel/).
 
 ## The box
 
