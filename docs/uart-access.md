@@ -74,11 +74,51 @@ su 0 start adbd
 adb connect <box-ip>:5555
 ```
 
-## U-Boot
+## Terminal settings: turn hardware flow control off
 
-`bootdelay=0` in the stock environment means there is **no autoboot interrupt
-window**. Reaching the U-Boot prompt requires either rewriting the `bootargs`
-partition to set a non-zero `bootdelay`, or holding whatever recovery key
-combination the board exposes. Do not rewrite `bootargs` without first dumping
-both it and `bootargsbak`, and having a way to reflash if the board stops
-booting.
+The header carries `GND`, `RX` and `TX` only — there is no `CTS`. A terminal
+configured for RTS/CTS therefore waits forever for a clear-to-send that never
+arrives, and **silently refuses to transmit**. Receive is unaffected, which makes
+this look convincing as a hardware fault: the board's log scrolls past normally,
+and nothing typed reaches it.
+
+`minicom` ships with `Hardware Flow Control : Yes` as its default, so it exhibits
+exactly this out of the box. Either turn it off (`Ctrl-A O` → *Serial port
+setup* → `F`) or use a terminal that does not enable it.
+[`../scripts/uart-term.py`](../scripts/uart-term.py) is a dependency-light one
+that sets `rtscts=False` explicitly and leaves `Ctrl+C` free to pass through to
+the board:
+
+```sh
+python3 scripts/uart-term.py            # Ctrl-] to quit
+python3 scripts/uart-term.py --catch    # hammer Ctrl+C to win the autoboot race
+```
+
+Before blaming the wiring, check that nothing else already holds the port —
+two processes on one tty fight over termios, and the second one to open it can
+have its settings overwritten by the first:
+
+```sh
+fuser -v /dev/ttyUSB0
+```
+
+## Reaching the U-Boot prompt
+
+Despite `bootdelay=0` in the stock environment, the vendor bootloader **does**
+offer an interrupt window and prints an invitation for it:
+
+```
+Press Ctrl+C to stop autoboot
+```
+
+`Ctrl+C` — not the usual any-key — is what it tests for. The window is short and
+the round trip over USB serial is 20–40 ms, so pressing it by hand is a race.
+Two things make it reliable:
+
+* Start sending **at the banner** (`Bootrom start` / `Fastboot 3.3.0`), not at
+  the invitation. Bytes then arrive continuously through the window.
+* Do not send *before* the banner. The bootloader drains pending input before
+  testing for the key, so anything sent earlier is discarded.
+
+`scripts/uart-term.py --catch` and `boot-mainline.py` both implement this. No
+recovery key combination is needed, and nothing has to be written to flash.
