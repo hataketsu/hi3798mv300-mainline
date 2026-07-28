@@ -6,7 +6,8 @@ to a generic HiSilicon **Hi3798MV300** Android TV box.
 The stock firmware is Android 9 (API 28) on kernel 4.9.118 from the HiSilicon
 `HiSTBLinuxV100R005C00` BSP, with `ro.build.version.release` spoofed to "14".
 
-> **Status: reconnaissance.** No mainline boot yet.
+> **Status: mainline boots to a shell.** Console, all four cores, clocks and
+> eMMC work; Ethernet, USB, GPIO and pinctrl do not yet.
 >
 > Mainline **U-Boot already supports this SoC family** and builds unpatched for
 > the Skyworth HC2910 (Hi3798MV200) — see [docs/uboot.md](docs/uboot.md).
