@@ -380,14 +380,35 @@ mmcblk0boot0 / mmcblk0boot1 / mmcblk0rpmb
 
 eMMC runs at HS400/150 MHz. `devices_deferred` drops to the GPIO banks alone.
 
-## Still open
+## The eMMC has no partition table
 
-**No partition nodes.** `/proc/partitions` lists `mmcblk0` and the two boot
-areas, nothing else. The eMMC carries no MBR or GPT — the vendor describes its
-layout entirely through `blkdevparts=mmcblk0:1M(fastboot),512K(bootargs),...`
-on the kernel command line. Reading it needs `CONFIG_CMDLINE_PARTITION` plus
-that argument, copied from
-[`extracted/uboot-env.txt`](../extracted/uboot-env.txt).
+`/proc/partitions` initially showed `mmcblk0` and the two boot areas and
+nothing else, which reads like a partition table the kernel failed to parse.
+There is no partition table. The vendor describes the layout entirely through
+the kernel command line:
+
+```
+blkdevparts=mmcblk0:1M(fastboot),512K(bootargs),512K(bootargsbak),20M(recovery),2M(deviceinfo),8M(securestore),8M(baseparam),8M(pqparam),2M(dtbo),10M(logo),10M(logobak),20M(fastplay),20M(recoverybak),60M(boot),20M(misc),20M(trustedcore),1700M(system),1000M(cache),1000M(vendor),50M(private),-(userdata)
+```
+
+Reading that needs `CONFIG_PARTITION_ADVANCED=y` and
+`CONFIG_CMDLINE_PARTITION=y`, neither of which defconfig sets. The string is in
+[`extracted/uboot-env.txt`](../extracted/uboot-env.txt); order matters, since
+the parser assigns partition numbers by position, and `-(userdata)` must stay
+last because it means "the rest".
+
+With both set, all 21 partitions appear and mount:
+
+```
+mmcblk0: p1(fastboot) p2(bootargs) p3(bootargsbak) p4(recovery) ... p21(userdata)
+EXT4-fs (mmcblk0p19): mounted filesystem ro without journal
+```
+
+`p19` is `vendor`, and it lists `build.prop`, `app/`, `firmware/`,
+`ueventd.rc` — the real stock filesystem, so the whole path from controller to
+data is correct, not merely enumerating.
+
+## Still open
 
 **`Failed to set rate to 400000`**, repeatedly, from both controllers. The card
 still enumerates because dw_mmc falls back to its own divider, but `clk_set_rate`
