@@ -77,7 +77,7 @@ docs/
   kernel.md            rebasing the out-of-tree CRG driver onto v7.2-rc5, board DTS
   debian-usb.md        Debian rootfs on USB, unattended boot, the eMMC env change
   emmc-install.md      Debian on eMMC: no partition table, blkdevparts, bootcmd
-  bootrom-serial.md    serial boot over UART -- how far it gets, and where it stops
+  bootrom-serial.md    why the bootrom will not take a bootloader over UART, and the strap that changes it
   usb.md               USB2 PHY reverse engineered out of the stock bootloader
   wifi.md              RTL8822BS on SDIO, and the dtsi typo that hid the controller
   ethernet.md          three defects between the FE MAC and its PHY, and the fixes
