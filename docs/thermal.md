@@ -21,17 +21,17 @@ SoC temperature in Fluidd:
 
 | state | temperature |
 |---|---|
-| idle | 56–58 °C |
-| four-thread load, 90 s | rises 65 → 70 °C and plateaus |
-| 20 s after load | 62 °C |
+| idle | 54–56 °C |
+| four-thread load, 180 s | rises 62 → 64 °C and plateaus |
+| 30 s after load | 55 °C |
 
 Trip points are 95 °C passive and 105 °C critical, taken from the vendor
-device tree, so there is about 25 °C of headroom at full tilt. The case gets
-warm to the touch, which is what a fanless box at 70 °C die temperature feels
+device tree, so there is about 30 °C of headroom at full tilt. The case gets
+warm to the touch, which is what a fanless box at 64 °C die temperature feels
 like; it is not close to trouble.
 
-Worth knowing, because the CPU has no idle states worth the name here — see
-[the cpufreq section](#no-cooling-map-yet).
+These numbers are lower than they used to be: the cores now idle at 900 MHz
+rather than a permanent 1.2 GHz. See [cpufreq.md](cpufreq.md).
 
 ## Why mainline's hisi_thermal does not fit
 
@@ -83,17 +83,36 @@ sleep 0.05
 devmem 0xf8a23028 32 0x0
 ```
 
-## No cooling map yet
+## Cooling map
 
-The zone has trips but no cooling device, because there is nothing to throttle
-with: the CPU runs at a fixed 1188 MHz and cpufreq cannot change it. Dropping
-`CLK_SET_RATE_PARENT` from `clk_cpu` was tried and reverted; the mux moves and
-the cores ignore it. The full account, with measurements, is in
-[cpufreq.md](cpufreq.md).
+The passive trip throttles the CPU:
 
-Given 70 °C under sustained full load against a 95 °C passive trip, there is
-nothing that needs throttling anyway. The critical trip still protects the
-part.
+```
+# cat /sys/class/thermal/cooling_device0/type
+cpufreq-cpu0
+# cat /sys/class/thermal/cooling_device0/max_state
+2
+```
+
+Three states, one per operating point — 1200, 900 and 600 MHz. This only
+became possible once the CPU clock could actually be changed; for most of this
+port's life cpufreq accepted rate changes without acting on them, so a passive
+trip had nothing to act through. See [cpufreq.md](cpufreq.md).
+
+It has yet to fire. Four threads for three minutes:
+
+```
+  t+ 15s  1200 MHz  62 C  cooling 0
+  t+ 90s  1200 MHz  63 C  cooling 0
+  t+180s  1200 MHz  64 C  cooling 0
+```
+
+64 °C against a 95 °C trip, so the map is insurance rather than something the
+box relies on. The critical trip still protects the part.
+
+Scaling did lower the numbers at the top of this page, though: idle now sits at
+900 MHz instead of 1.2 GHz, and sustained load peaks at 64 °C rather than the
+70 °C measured before.
 
 ## Patches
 * [`0008`](../patches/kernel/0008-thermal-hisilicon-add-the-Hi3798MV200-MV300-temperature-sensor.patch)

@@ -23,7 +23,7 @@ The stock firmware is Android 9 (API 28) on kernel 4.9.118 from the HiSilicon
 | | |
 |---|---|
 | Boot chain | vendor bootloader → l-loader → TF-A → mainline U-Boot 2026.07 → Linux 7.2-rc5, all from eMMC |
-| CPU | 4× Cortex-A53 via PSCI, fixed at **1200 MHz** — cpufreq needs a PLL retune sequence mainline does not implement |
+| CPU | 4× Cortex-A53 via PSCI, **scaling 600–1200 MHz** under `schedutil` — needed a CPU PLL retune sequence mainline does not have |
 | eMMC | HS400 @ 150 MHz; **Debian roots off it**, no USB stick needed |
 | USB 2.0 | EHCI + OHCI, host + storage |
 | Wi-Fi | RTL8822BS on SDIO, mainline `rtw88`, firmware 27.2.0 |
@@ -32,7 +32,7 @@ The stock firmware is Android 9 (API 28) on kernel 4.9.118 from the HiSilicon
 | IR | `hix5hd2-ir` at `0xf8001000`, raw pulses on `/dev/lirc0` and scancodes after the in-kernel decoders |
 | LEDs | both front-panel LEDs on `gpio5`, exposed as `/sys/class/leds` with triggers |
 | GPIO/pinctrl | `gpio5` works; gpio0-gpio9 defer forever, waiting on a pinctrl driver |
-| Thermal | SoC sensor exposed as `thermal_zone0`; 56 °C idle, 70 °C under full load |
+| Thermal | SoC sensor exposed as `thermal_zone0`; 55 °C idle, 64 °C under full load, CPU throttling wired to the passive trip |
 | USB 3.0 | still disabled |
 
 Details: [docs/emmc-install.md](docs/emmc-install.md), [docs/debian-usb.md](docs/debian-usb.md), [docs/usb.md](docs/usb.md),
@@ -85,8 +85,8 @@ docs/
   ethernet.md          three defects between the FE MAC and its PHY, and the fixes
   ir.md                IR receiver, the sysctrl clock it needs, enabling the decoders
   leds.md              finding two undocumented front-panel LEDs by measurement
-  thermal.md           the SoC temperature sensor and what the box actually runs at
-  cpufreq.md           the cores are fixed at 1188 MHz; measuring it, and why
+  thermal.md           the SoC temperature sensor, its thermal zone and cooling map
+  cpufreq.md           making the cores actually change speed, and how the PLL is retuned
   uart-access.md       serial console wiring, flow control, reaching the U-Boot prompt
 dts/
   hi3798mv300-tvbox.dts  board device tree for this box

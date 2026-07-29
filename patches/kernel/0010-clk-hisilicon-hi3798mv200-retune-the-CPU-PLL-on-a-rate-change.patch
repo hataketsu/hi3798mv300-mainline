@@ -1,0 +1,296 @@
+From da5bf2a08299de019a3e5869982d1ec69ad3a14c Mon Sep 17 00:00:00 2001
+From: Hataketsu <hunganh.dev@gmail.com>
+Date: Wed, 29 Jul 2026 16:39:59 +0000
+Subject: [PATCH 10/11] clk: hisilicon: hi3798mv200: retune the CPU PLL on a
+ rate change
+
+The CPU clock could not be changed. cpufreq accepted every request, the
+clock framework updated its bookkeeping, and the cores kept running at
+1.2 GHz -- a loop of known cycle cost timed against the architected timer
+measured the same rate at every operating point.
+
+The cores are fed by a CPU PLL whose frequency the vendor changes by
+retuning it, not by writing the PLL config registers and not by moving
+the mux in front of it. mpu_clk_set_rate() in
+source/msp/drv/pm/pm_v200/clock_mpu.c of the HiSTBLinuxV100R005C00 BSP
+reads the dividers, computes a feedback divider, writes it to CRG105,
+sets the tune mode, strobes the tune enable, and waits. Nothing in
+hisi_pll_set_rate() does any of that, so the generic PLL clock reported
+rates that nothing stood behind.
+
+Register the CPU PLL with its own ops that perform that sequence, and
+recalculate from the live tune register rather than the config register,
+which the bootloader leaves holding an unrelated value. The tune walks to
+its target one step at a time and the busy bit drops before it arrives,
+so wait on the divider itself.
+
+The mux in front of the PLL gains CLK_SET_RATE_NO_REPARENT. Its fixed
+parents are selectable in theory, but writing the select field has no
+observable effect on the cores, and the vendor only ever reads it back to
+report which source is live. Without the flag the clock core picks a
+fixed parent whenever one matches a request exactly, tries to reparent,
+and the rate silently does not change -- which is what happened to every
+operating point the PLL could not hit exactly.
+
+Rates are clamped to 400 MHz-1.2 GHz. The CPU supply on this SoC is a
+PWM-trimmed buck that mainline does not drive, so the voltage stays where
+the bootloader left it, chosen for the 1.2 GHz it also programmed.
+
+Measured with sysbench at 4 threads, against the requested frequency:
+
+  600 MHz   480.9 events/s
+  900 MHz   723.4 events/s
+  1200 MHz  965.7 events/s
+
+Linear to within 0.5%.
+
+Signed-off-by: Hataketsu <hunganh.dev@gmail.com>
+---
+ drivers/clk/hisilicon/crg-hi3798mv200.c | 205 +++++++++++++++++++++++-
+ 1 file changed, 203 insertions(+), 2 deletions(-)
+
+diff --git a/drivers/clk/hisilicon/crg-hi3798mv200.c b/drivers/clk/hisilicon/crg-hi3798mv200.c
+index ea0cedc2ddda..1a43bf8b78aa 100644
+--- a/drivers/clk/hisilicon/crg-hi3798mv200.c
++++ b/drivers/clk/hisilicon/crg-hi3798mv200.c
+@@ -9,6 +9,7 @@
+ #include <dt-bindings/clock/hisilicon,hi3798mv200-crg.h>
+ #include <dt-bindings/clock/hisilicon,hi3798mv200-sysctrl.h>
+ #include <linux/clk-provider.h>
++#include <linux/iopoll.h>
+ #include <linux/module.h>
+ #include <linux/of_device.h>
+ #include <linux/platform_device.h>
+@@ -105,8 +106,18 @@ static struct hisi_mux_clock hi3798mv200_mux_clks[] = {
+ 		0, 0x58, 8, 2, 0, mux_table_2bit_pattern1, },
+ 	{ HI3798MV200_MDE3_BUS_CLK, "clk_mde3_bus", mde3_bus_mux_p, ARRAY_SIZE(mde3_bus_mux_p),
+ 		0, 0x58, 10, 1, 0, mux_table_1bit, },
++	/*
++	 * CLK_SET_RATE_NO_REPARENT: the fixed parents are selectable in theory
++	 * but writing the select field has no observable effect on the cores,
++	 * and the vendor never writes it either -- it only reads it back to
++	 * report which source is live. Every rate change goes to the CPU PLL.
++	 * Without this the clock core picks a fixed parent whenever one matches
++	 * the request exactly, tries to reparent, and the rate silently does
++	 * not change.
++	 */
+ 	{ HI3798MV200_CPU_CLK, "clk_cpu", cpu_mux_p, ARRAY_SIZE(cpu_mux_p),
+-		CLK_SET_RATE_PARENT, 0x48, 0, 3, CLK_MUX_ROUND_CLOSEST, cpu_mux_table },
++		CLK_SET_RATE_PARENT | CLK_SET_RATE_NO_REPARENT,
++		0x48, 0, 3, CLK_MUX_ROUND_CLOSEST, cpu_mux_table },
+ 	{ HI3798MV200_MMC_MUX, "mmc_mux", mmc_mux_p, ARRAY_SIZE(mmc_mux_p),
+ 		0, 0xa0, 8, 3, CLK_MUX_ROUND_CLOSEST, mmc_mux_table, },
+ 	{ HI3798MV200_COMBPHY_MUX, "combphy_mux", comphy_mux_p,
+@@ -237,7 +248,7 @@ static const struct hisi_gate_clock hi3798mv200_gate_clks[] = {
+ };
+ 
+ static const struct hisi_pll_clock hi3798mv200_plls[] = {
+-	{ HI3798MV200_APLL_CLK, "apll", "clk_osc", CLK_IS_CRITICAL, 0x0 },
++	/* apll is the CPU PLL and is registered separately; see above. */
+ 	{ HI3798MV200_BPLL_CLK, "bpll", "clk_osc", CLK_IS_CRITICAL, 0x8 },
+ 	{ HI3798MV200_DPLL_CLK, "dpll", "clk_osc", CLK_IS_CRITICAL, 0x10 },
+ 	{ HI3798MV200_VPLL_CLK, "vpll", "clk_osc", CLK_IS_CRITICAL, 0x20 },
+@@ -246,6 +257,192 @@ static const struct hisi_pll_clock hi3798mv200_plls[] = {
+ 	{ HI3798MV200_QPLL_CLK, "qpll", "clk_osc", CLK_IS_CRITICAL, 0x38 },
+ };
+ 
++/*
++ * The CPU PLL is retuned rather than rewritten. Poking the PLL config
++ * registers directly -- which is what the generic hisi_pll set_rate does --
++ * changes what the clock framework believes and nothing else; the cores keep
++ * running at whatever the tune registers were left holding. The sequence
++ * below is the one the vendor driver uses, from mpu_clk_set_rate() in
++ * source/msp/drv/pm/pm_v200/clock_mpu.c of the HiSTBLinuxV100R005C00 BSP.
++ *
++ * rate = fbdiv * parent / (postdiv1 * postdiv2 * refdiv)
++ */
++#define HI3798MV200_PLL_CFG0		0x000	/* postdiv1 [26:24], postdiv2 [30:28] */
++#define HI3798MV200_PLL_CFG1		0x004	/* refdiv [17:12], fbdiv [11:0] */
++#define HI3798MV200_TUNE_INT		0x1a4	/* CRG105 */
++#define HI3798MV200_TUNE_FRAC		0x1a8	/* CRG106 */
++#define HI3798MV200_TUNE_STEP_INT	0x1ac	/* CRG107 */
++#define HI3798MV200_TUNE_STEP_FRAC	0x1b0	/* CRG108 */
++#define HI3798MV200_TUNE_CTRL		0x1b4	/* CRG109 */
++#define HI3798MV200_TUNE_STAT		0x294	/* CRG165 */
++
++#define HI3798MV200_TUNE_MODE		BIT(2)
++#define HI3798MV200_TUNE_EN		BIT(3)
++#define HI3798MV200_TUNE_BUSY		BIT(13)
++#define HI3798MV200_FBDIV_MASK		GENMASK(11, 0)
++
++/*
++ * The CPU shares its supply rail with the SoC core on this board and nothing
++ * in mainline drives the PWM that sets it, so the voltage stays wherever the
++ * bootloader left it -- 1.09 V, chosen for the 1.2 GHz it also programmed.
++ * Running slower on that is free; running faster on it is not, so the upper
++ * bound is the operating point handed over rather than the PLL's capability.
++ */
++#define HI3798MV200_CPU_RATE_MIN	400000000UL
++#define HI3798MV200_CPU_RATE_MAX	1200000000UL
++
++struct hi3798mv200_cpu_pll {
++	struct clk_hw hw;
++	void __iomem *base;
++};
++
++#define to_cpu_pll(_hw) container_of(_hw, struct hi3798mv200_cpu_pll, hw)
++
++static unsigned int cpu_pll_div(struct hi3798mv200_cpu_pll *pll)
++{
++	u32 cfg0 = readl(pll->base + HI3798MV200_PLL_CFG0);
++	u32 cfg1 = readl(pll->base + HI3798MV200_PLL_CFG1);
++	unsigned int postdiv1 = (cfg0 >> 24) & 0x7;
++	unsigned int postdiv2 = (cfg0 >> 28) & 0x7;
++	unsigned int refdiv = (cfg1 >> 12) & 0x3f;
++
++	return postdiv1 * postdiv2 * refdiv;
++}
++
++static unsigned long cpu_pll_recalc_rate(struct clk_hw *hw,
++					 unsigned long parent_rate)
++{
++	struct hi3798mv200_cpu_pll *pll = to_cpu_pll(hw);
++	unsigned int div = cpu_pll_div(pll);
++	u32 fbdiv;
++
++	if (!div)
++		return 0;
++
++	/*
++	 * The tune register wins over the divider in PLL_CFG1, which is left
++	 * holding whatever value the bootloader started from.
++	 */
++	fbdiv = readl(pll->base + HI3798MV200_TUNE_STAT) & HI3798MV200_FBDIV_MASK;
++	if (!fbdiv)
++		fbdiv = readl(pll->base + HI3798MV200_PLL_CFG1) & HI3798MV200_FBDIV_MASK;
++
++	return DIV_ROUND_CLOSEST_ULL((u64)parent_rate * fbdiv, div);
++}
++
++static unsigned long cpu_pll_pick(struct hi3798mv200_cpu_pll *pll,
++				  unsigned long rate, unsigned long parent_rate,
++				  u32 *fbdiv_out)
++{
++	unsigned int div = cpu_pll_div(pll);
++	u32 fbdiv;
++
++	if (!div || !parent_rate)
++		return 0;
++
++	rate = clamp(rate, HI3798MV200_CPU_RATE_MIN, HI3798MV200_CPU_RATE_MAX);
++
++	fbdiv = DIV_ROUND_CLOSEST_ULL((u64)rate * div, parent_rate);
++	fbdiv = clamp_t(u32, fbdiv, 1, HI3798MV200_FBDIV_MASK);
++
++	if (fbdiv_out)
++		*fbdiv_out = fbdiv;
++
++	return DIV_ROUND_CLOSEST_ULL((u64)parent_rate * fbdiv, div);
++}
++
++static int cpu_pll_determine_rate(struct clk_hw *hw,
++				  struct clk_rate_request *req)
++{
++	unsigned long rate;
++
++	rate = cpu_pll_pick(to_cpu_pll(hw), req->rate, req->best_parent_rate,
++			    NULL);
++	if (!rate)
++		return -EINVAL;
++
++	req->rate = rate;
++
++	return 0;
++}
++
++static int cpu_pll_set_rate(struct clk_hw *hw, unsigned long rate,
++			    unsigned long parent_rate)
++{
++	struct hi3798mv200_cpu_pll *pll = to_cpu_pll(hw);
++	u32 fbdiv, ctrl, stat;
++	int ret;
++
++	if (!cpu_pll_pick(pll, rate, parent_rate, &fbdiv))
++		return -EINVAL;
++
++	writel(fbdiv, pll->base + HI3798MV200_TUNE_INT);
++	writel(0, pll->base + HI3798MV200_TUNE_FRAC);
++	writel(1, pll->base + HI3798MV200_TUNE_STEP_INT);
++	writel(0, pll->base + HI3798MV200_TUNE_STEP_FRAC);
++
++	ctrl = readl(pll->base + HI3798MV200_TUNE_CTRL);
++	ctrl |= HI3798MV200_TUNE_MODE;
++	writel(ctrl, pll->base + HI3798MV200_TUNE_CTRL);
++
++	/* The tune starts on the rising edge, so it has to be lowered first. */
++	writel(ctrl & ~HI3798MV200_TUNE_EN, pll->base + HI3798MV200_TUNE_CTRL);
++	writel(ctrl | HI3798MV200_TUNE_EN, pll->base + HI3798MV200_TUNE_CTRL);
++
++	/*
++	 * The step is one, so the PLL walks to the target instead of jumping,
++	 * and the busy bit drops before the walk has finished. Waiting for the
++	 * live divider to reach the target is what actually says it arrived;
++	 * stopping at the busy bit leaves recalc_rate reporting a rate the
++	 * cores only passed through on the way.
++	 */
++	ret = readl_poll_timeout_atomic(pll->base + HI3798MV200_TUNE_STAT, stat,
++					!(stat & HI3798MV200_TUNE_BUSY) &&
++					(stat & HI3798MV200_FBDIV_MASK) == fbdiv,
++					10, 100000);
++	if (ret)
++		pr_warn("hi3798mv200: CPU PLL did not reach fbdiv %u for %lu Hz\n",
++			fbdiv, rate);
++
++	return ret;
++}
++
++static const struct clk_ops hi3798mv200_cpu_pll_ops = {
++	.recalc_rate = cpu_pll_recalc_rate,
++	.determine_rate = cpu_pll_determine_rate,
++	.set_rate = cpu_pll_set_rate,
++};
++
++static int hi3798mv200_register_cpu_pll(struct device *dev,
++					struct hisi_clock_data *data)
++{
++	struct hi3798mv200_cpu_pll *pll;
++	struct clk_init_data init = { };
++	const char *parent = "clk_osc";
++	int ret;
++
++	pll = devm_kzalloc(dev, sizeof(*pll), GFP_KERNEL);
++	if (!pll)
++		return -ENOMEM;
++
++	init.name = "apll";
++	init.ops = &hi3798mv200_cpu_pll_ops;
++	init.flags = CLK_IS_CRITICAL;
++	init.parent_names = &parent;
++	init.num_parents = 1;
++
++	pll->base = data->base;
++	pll->hw.init = &init;
++
++	ret = devm_clk_hw_register(dev, &pll->hw);
++	if (ret)
++		return ret;
++
++	data->clk_data.clks[HI3798MV200_APLL_CLK] = pll->hw.clk;
++
++	return 0;
++}
++
+ static struct hisi_clock_data *hi3798mv200_clk_register(
+ 				struct platform_device *pdev)
+ {
+@@ -271,6 +468,10 @@ static struct hisi_clock_data *hi3798mv200_clk_register(
+ 	if (ret)
+ 		return ERR_PTR(ret);
+ 
++	ret = hi3798mv200_register_cpu_pll(&pdev->dev, clk_data);
++	if (ret)
++		return ERR_PTR(ret);
++
+ 	ret = hisi_clk_register_fixed_rate(hi3798mv200_fixed_rate_clks,
+ 				     ARRAY_SIZE(hi3798mv200_fixed_rate_clks),
+ 				     clk_data);

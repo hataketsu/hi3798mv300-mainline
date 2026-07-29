@@ -1,0 +1,144 @@
+From d8a8556eb0930a6a35bf796b64d3d36b06d25759 Mon Sep 17 00:00:00 2001
+From: Hataketsu <hunganh.dev@gmail.com>
+Date: Wed, 29 Jul 2026 16:40:00 +0000
+Subject: [PATCH 11/11] arm64: dts: hisilicon: fit the Hi3798MV200 OPPs to the
+ CPU PLL
+
+Every operating point is now a whole multiple of 6 MHz, which is what the
+CPU PLL can hit exactly with the dividers the bootloader programs: a
+24 MHz reference over postdiv1 2, postdiv2 1 and refdiv 2, one step per
+feedback divider. Asking for anything else lands on a neighbouring rate,
+so cpufreq would report a frequency the cores were not running at.
+
+The table is capped at 1.2 GHz. The CPU rail is a PWM-trimmed buck that
+mainline does not drive, and on this board it is shared with the SoC
+core, so the voltage stays where the bootloader left it -- about 1.09 V,
+chosen for the 1.2 GHz it also programmed. The 1.35 and 1.6 GHz the part
+can reach are not safe at that voltage, and 24, 200, 400 and 800 MHz were
+not reachable at all.
+
+With the clock finally changing, the soc-thermal passive trip has
+something to throttle, so cpu0 gets a cooling map. It has yet to fire:
+four threads for three minutes reach 64 degC against a 95 degC trip.
+
+Signed-off-by: Hataketsu <hunganh.dev@gmail.com>
+---
+ .../arm64/boot/dts/hisilicon/hi3798mv200.dtsi | 59 +++++++++++--------
+ 1 file changed, 33 insertions(+), 26 deletions(-)
+
+diff --git a/arch/arm64/boot/dts/hisilicon/hi3798mv200.dtsi b/arch/arm64/boot/dts/hisilicon/hi3798mv200.dtsi
+index ebfa0506c4cc..59cd4aff8fdc 100644
+--- a/arch/arm64/boot/dts/hisilicon/hi3798mv200.dtsi
++++ b/arch/arm64/boot/dts/hisilicon/hi3798mv200.dtsi
+@@ -6,6 +6,7 @@
+  */
+ 
+ #include <dt-bindings/clock/hisilicon,hi3798mv200-crg.h>
++#include <dt-bindings/thermal/thermal.h>
+ #include <dt-bindings/clock/hisilicon,hi3798mv200-sysctrl.h>
+ #include <dt-bindings/interrupt-controller/arm-gic.h>
+ #include <dt-bindings/phy/phy.h>
+@@ -39,7 +40,7 @@ cpus {
+ 		#address-cells = <2>;
+ 		#size-cells = <0>;
+ 
+-		cpu@0 {
++		cpu0: cpu@0 {
+ 			compatible = "arm,cortex-a53";
+ 			device_type = "cpu";
+ 			reg = <0x0 0x0>;
+@@ -53,6 +54,7 @@ cpu@0 {
+ 			next-level-cache = <&L2>;
+ 			clocks = <&crg HI3798MV200_CPU_CLK>;
+ 			operating-points-v2 = <&cpu_opp_table>;
++			#cooling-cells = <2>;
+ 		};
+ 
+ 		cpu@1 {
+@@ -104,35 +106,38 @@ cpu@3 {
+ 		};
+ 	};
+ 
++	/*
++	 * Capped at 1.2 GHz. The CPU rail is a PWM-trimmed buck that mainline
++	 * does not drive, and on this board it is shared with the SoC core, so
++	 * the voltage stays where the bootloader left it -- chosen for the
++	 * 1.2 GHz it also programmed. The 1.35 and 1.6 GHz points the hardware
++	 * can reach are not safe at that voltage.
++	 */
+ 	cpu_opp_table: opp-table {
+ 		compatible = "operating-points-v2";
+ 		opp-shared;
+ 
+-		opp-24000000 {
+-			opp-hz = /bits/ 64 <24000000>;
+-			opp-suspend;
+-		};
+-		opp-200000000 {
+-			opp-hz = /bits/ 64 <200000000>;
+-		};
+-		opp-400000000 {
+-			opp-hz = /bits/ 64 <400000000>;
+-		};
++		/*
++		 * Every point is a whole multiple of 6 MHz, which is what the CPU
++		 * PLL can hit exactly with the dividers the bootloader sets
++		 * (24 MHz / (postdiv1 2 * postdiv2 1 * refdiv 2) per fbdiv step).
++		 * Asking for anything else lands on a neighbouring rate.
++		 *
++		 * Capped at 1.2 GHz: the CPU rail is a PWM-trimmed buck that
++		 * mainline does not drive, shared with the SoC core on this board,
++		 * so the voltage stays where the bootloader left it -- chosen for
++		 * the 1.2 GHz it also programmed. The 1.35 and 1.6 GHz the part can
++		 * reach are not safe at that voltage.
++		 */
+ 		opp-600000000 {
+ 			opp-hz = /bits/ 64 <600000000>;
+ 		};
+-		opp-800000000 {
+-			opp-hz = /bits/ 64 <800000000>;
++		opp-900000000 {
++			opp-hz = /bits/ 64 <900000000>;
+ 		};
+ 		opp-1200000000 {
+ 			opp-hz = /bits/ 64 <1200000000>;
+ 		};
+-		opp-1350000000 {
+-			opp-hz = /bits/ 64 <1350000000>;
+-		};
+-		opp-1600000000 {
+-			opp-hz = /bits/ 64 <1600000000>;
+-		};
+ 	};
+ 
+ 	L2: l2-cache {
+@@ -180,13 +185,7 @@ soc-thermal {
+ 			polling-delay-passive = <250>;
+ 			thermal-sensors = <&tsensor>;
+ 
+-			/*
+-			 * Trip temperatures match the vendor device tree. No
+-			 * cooling map yet: cpufreq on this SoC accepts rate
+-			 * changes without acting on them, so there is nothing
+-			 * for a passive trip to throttle. The critical trip
+-			 * still protects the part.
+-			 */
++			/* Trip temperatures match the vendor device tree. */
+ 			trips {
+ 				soc_alert: soc-alert {
+ 					temperature = <95000>;
+@@ -200,6 +199,14 @@ soc_crit: soc-crit {
+ 					type = "critical";
+ 				};
+ 			};
++
++			cooling-maps {
++				map0 {
++					trip = <&soc_alert>;
++					cooling-device = <&cpu0 THERMAL_NO_LIMIT
++							  THERMAL_NO_LIMIT>;
++				};
++			};
+ 		};
+ 	};
+ 
