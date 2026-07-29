@@ -6,23 +6,26 @@ to a generic HiSilicon **Hi3798MV300** Android TV box.
 The stock firmware is Android 9 (API 28) on kernel 4.9.118 from the HiSilicon
 `HiSTBLinuxV100R005C00` BSP, with `ro.build.version.release` spoofed to "14".
 
-> **Status: Debian 13 runs on this box, off a USB stick, with Wi-Fi.**
-> Power on and it reaches a login prompt unattended — no serial console, nothing
-> typed. Console, all four cores, clocks, eMMC, USB 2.0 host and Wi-Fi work.
-> Ethernet, GPIO, pinctrl and USB 3.0 do not yet.
+> **Status: Debian 13 runs on this box from its own eMMC, with no USB stick
+> attached.** Power on and it reaches a login prompt unattended — no serial
+> console, nothing typed. Console, all four cores, clocks, eMMC, USB 2.0 host,
+> Wi-Fi, 100 Mbit Ethernet, the IR receiver and both front-panel LEDs work.
+> Pinctrl and USB 3.0 do not yet, and nine of the ten GPIO banks wait on
+> pinctrl.
 >
-> **The eMMC still holds stock Android.** The only write ever made to it is the
-> U-Boot `bootcmd`, and the original is saved alongside it, so the box goes back
-> to Android with one `setenv`.
+> **Stock Android has been replaced on eMMC**, but only from `system` onwards.
+> Sector 0 still holds the untouched vendor bootloader, which is what makes the
+> `fastboot#` prompt — and therefore every recovery path — still reachable. Full
+> partition dumps taken beforehand restore the box to Android.
 
 ## Where it got to
 
 | | |
 |---|---|
-| Boot chain | vendor bootloader → l-loader → TF-A → mainline U-Boot 2026.07 → Linux 7.2-rc5, all from USB |
+| Boot chain | vendor bootloader → l-loader → TF-A → mainline U-Boot 2026.07 → Linux 7.2-rc5, all from eMMC |
 | CPU | 4× Cortex-A53 via PSCI, cpufreq 798 MHz → 1.2 GHz |
-| eMMC | HS400 @ 150 MHz, all 21 vendor partitions parse and mount |
-| USB 2.0 | EHCI + OHCI, roots the system off a USB stick |
+| eMMC | HS400 @ 150 MHz; **Debian roots off it**, no USB stick needed |
+| USB 2.0 | EHCI + OHCI, host + storage |
 | Wi-Fi | RTL8822BS on SDIO, mainline `rtw88`, firmware 27.2.0 |
 | Userland | Debian 13 trixie arm64, systemd, sshd |
 | Ethernet | `end0` up, 100 Mbit full duplex — needed a kconfig, a missing MDIO clock and the right PHY address |
@@ -31,7 +34,7 @@ The stock firmware is Android 9 (API 28) on kernel 4.9.118 from the HiSilicon
 | GPIO/pinctrl | `gpio5` works; gpio0-gpio9 defer forever, waiting on a pinctrl driver |
 | USB 3.0 | still disabled |
 
-Details: [docs/debian-usb.md](docs/debian-usb.md), [docs/usb.md](docs/usb.md),
+Details: [docs/emmc-install.md](docs/emmc-install.md), [docs/debian-usb.md](docs/debian-usb.md), [docs/usb.md](docs/usb.md),
 [docs/wifi.md](docs/wifi.md), [docs/ethernet.md](docs/ethernet.md),
 [docs/ir.md](docs/ir.md), [docs/leds.md](docs/leds.md),
 [docs/kernel.md](docs/kernel.md), [patches/kernel/](patches/kernel/).
@@ -73,6 +76,8 @@ docs/
   aarch64-bringup.md   TF-A + mainline U-Boot running in 64-bit mode, no eMMC writes
   kernel.md            rebasing the out-of-tree CRG driver onto v7.2-rc5, board DTS
   debian-usb.md        Debian rootfs on USB, unattended boot, the eMMC env change
+  emmc-install.md      Debian on eMMC: no partition table, blkdevparts, bootcmd
+  bootrom-serial.md    serial boot over UART -- how far it gets, and where it stops
   usb.md               USB2 PHY reverse engineered out of the stock bootloader
   wifi.md              RTL8822BS on SDIO, and the dtsi typo that hid the controller
   ethernet.md          three defects between the FE MAC and its PHY, and the fixes
@@ -99,6 +104,7 @@ scripts/
   dump-partitions.sh   dump every firmware partition to external storage
   tvbox-panel.py       browser panel: drive the LEDs, watch IR live, probe GPIO
   tvbox-gpio-helper.py privileged PL061 access for the panel, bank/pin only
+  install-to-emmc.sh   copy the running root to eMMC and write the boot images
 ```
 
 ## What is deliberately *not* here

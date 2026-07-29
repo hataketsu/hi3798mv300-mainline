@@ -72,8 +72,13 @@
 			gpios = <&gpio5 0 GPIO_ACTIVE_HIGH>;
 			color = <LED_COLOR_ID_RED>;
 			function = LED_FUNCTION_ACTIVITY;
-			/* Lit while any core is out of idle. */
-			linux,default-trigger = "cpu";
+			/*
+			 * eMMC activity. mmc0 is f9830000.mmc, the eMMC -- mmc1 is
+			 * the empty SD slot and mmc2 the SDIO Wi-Fi. The "cpu"
+			 * trigger was useless here: the box is rarely idle enough
+			 * for it to blink, so the LED just stayed on.
+			 */
+			linux,default-trigger = "mmc0";
 		};
 
 		led-1 {
