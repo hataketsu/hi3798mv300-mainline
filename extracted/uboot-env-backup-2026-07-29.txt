@@ -1,0 +1,46 @@
+Stock U-Boot environment, read with `printenv` at the `fastboot#` prompt on
+2026-07-29, immediately before bootcmd was repointed at the USB stick.
+
+This is the environment as the box shipped, with one change already made: the
+stock `bootdelay=0` had been set to 3 earlier so the autoboot countdown can be
+interrupted. Everything else is untouched vendor state.
+
+Environment size: 1861/65532 bytes. It lives on eMMC at offset 0x00100000,
+0x00010000 long, inside the 512K `bootargs` partition (mmcblk0p2).
+
+The MAC address is redacted; the real one is on the box.
+
+    verify=n
+    baudrate=115200
+    ipaddr=192.168.1.10
+    serverip=192.168.1.1
+    netmask=255.255.255.0
+    bootfile="uImage"
+    phy_intf=mii,rgmii
+    use_mdio=0,1
+    phy_addr=2,1
+    gmac_debug=0
+    bootcmd=mmc read 0 0x3ED00000 0x5F000 0x4000;bootm 0x3EF00000; mmc read 0 0x1FFBFC0 0x37000 0xC800; mmc read 0 0x3FFBFC0 0x18000 0x3C; bootm 0x1FFBFC0 - 0x3FFC000
+    bootargs=androidboot.hardware=bigfish androidboot.selinux=permissive androidboot.serialno=0123456789 console=ttyAMA0,115200 blkdevparts=mmcblk0:1M(fastboot),512K(bootargs),512K(bootargsbak),20M(recovery),2M(deviceinfo),8M(securestore),8M(baseparam),8M(pqparam),2M(dtbo),10M(logo),10M(logobak),20M(fastplay),20M(recoverybak),60M(boot),20M(misc),20M(trustedcore),1700M(system),1000M(cache),1000M(vendor),50M(private),-(userdata) hbcomp=/dev/block/mmcblk0p17 skip_initramfs init=/init root=/dev/mmcblk0p17 androidboot.dtbo_idx=0 dongle nopcie nosata nouart3 nofmc pq=noacmuhd
+    recoverybootargs=androidboot.hardware=bigfish androidboot.selinux=permissive androidboot.serialno=0123456789 console=ttyAMA0,115200 blkdevparts=mmcblk0:1M(fastboot),512K(bootargs),512K(bootargsbak),20M(recovery),2M(deviceinfo),8M(securestore),8M(baseparam),8M(pqparam),2M(dtbo),10M(logo),10M(logobak),20M(fastplay),20M(recoverybak),60M(boot),20M(misc),20M(trustedcore),1700M(system),1000M(cache),1000M(vendor),50M(private),-(userdata) hbcomp=/dev/block/mmcblk0p17 androidboot.dtbo_idx=0 dongle nopcie nosata nouart3 nofmc pq=noacmuhd systemd.log_level=debug systemd.log_target=kmsg log_buf_len=1M printk.devkmsg=on
+    bootargs_512M=mem=512M mmz=ddr,0,0,32M vmalloc=500M
+    bootargs_768M=mem=768M mmz=ddr,0,0,32M vmalloc=500M
+    bootargs_1G=mem=988M mmz=ddr,0,0,44M vmalloc=500M
+    bootargs_2G=mem=992M mmz=ddr,0,0,44M vmalloc=500M
+    ethact=up
+    bootdelay=3
+    stdin=serial
+    stdout=serial
+    stderr=serial
+    ethaddr=<redacted>
+    ver=Fastboot 3.3.0 (psqiu@) (Aug 29 2025 - 16:20:37)
+
+## Restoring Android boot
+
+The USB boot change only replaces `bootcmd`, and saves the original to
+`bootcmd_android` first. To put the box back the way it was:
+
+    setenv bootcmd "${bootcmd_android}"
+    saveenv
+
+If `bootcmd_android` is ever lost, paste the `bootcmd` line above verbatim.

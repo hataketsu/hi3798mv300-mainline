@@ -6,27 +6,40 @@ to a generic HiSilicon **Hi3798MV300** Android TV box.
 The stock firmware is Android 9 (API 28) on kernel 4.9.118 from the HiSilicon
 `HiSTBLinuxV100R005C00` BSP, with `ro.build.version.release` spoofed to "14".
 
-> **Status: mainline boots to a shell.** Console, all four cores, clocks and
-> eMMC work; Ethernet, USB, GPIO and pinctrl do not yet.
+> **Status: Debian 13 runs on this box, off a USB stick, with Wi-Fi.**
+> Power on and it reaches a login prompt unattended — no serial console, nothing
+> typed. Console, all four cores, clocks, eMMC, USB 2.0 host and Wi-Fi work.
+> Ethernet, GPIO, pinctrl and USB 3.0 do not yet.
 >
+> **The eMMC still holds stock Android.** The only write ever made to it is the
+> U-Boot `bootcmd`, and the original is saved alongside it, so the box goes back
+> to Android with one `setenv`.
+
+## Where it got to
+
+| | |
+|---|---|
+| Boot chain | vendor bootloader → l-loader → TF-A → mainline U-Boot 2026.07 → Linux 7.2-rc5, all from USB |
+| CPU | 4× Cortex-A53 via PSCI, cpufreq 798 MHz → 1.2 GHz |
+| eMMC | HS400 @ 150 MHz, all 21 vendor partitions parse and mount |
+| USB 2.0 | EHCI + OHCI, roots the system off a USB stick |
+| Wi-Fi | RTL8822BS on SDIO, mainline `rtw88`, firmware 27.2.0 |
+| Userland | Debian 13 trixie arm64, systemd, sshd |
+| Ethernet | MAC probes, **no PHY** — missing `CONFIG_MDIO_HISI_FEMAC`, fix built but untested |
+| GPIO/pinctrl | defer forever, waiting on a pinctrl driver |
+| USB 3.0 | still disabled |
+
+Details: [docs/debian-usb.md](docs/debian-usb.md), [docs/usb.md](docs/usb.md),
+[docs/wifi.md](docs/wifi.md), [docs/ethernet.md](docs/ethernet.md),
+[docs/kernel.md](docs/kernel.md), [patches/kernel/](patches/kernel/).
+
 > Mainline **U-Boot already supports this SoC family** and builds unpatched for
 > the Skyworth HC2910 (Hi3798MV200) — see [docs/uboot.md](docs/uboot.md).
 > The secure-boot fuse on this unit is **not burned**, so an unsigned bootloader
-> should be accepted — see [docs/secure-boot.md](docs/secure-boot.md).
-> A flash-free test loop works today: kernels can be served over TFTP and booted
-> from RAM — see [docs/tftp-boot.md](docs/tftp-boot.md).
->
-> **ARM Trusted Firmware and mainline U-Boot 2026.07 now boot on this box in
-> AArch64**, loaded entirely into RAM with eMMC untouched — see
+> is accepted — see [docs/secure-boot.md](docs/secure-boot.md).
+> Kernels can also be served over TFTP and booted from RAM — see
+> [docs/tftp-boot.md](docs/tftp-boot.md) and
 > [docs/aarch64-bringup.md](docs/aarch64-bringup.md).
-> A **mainline v7.2-rc5 kernel now boots on this box**, with the out-of-tree CRG
-> clock driver rebased forward and a board device tree written for this board.
-> All four cores come up through PSCI and cpufreq reads the real CPU frequency
-> off the clock driver, which confirms the MV200 CRG driver works on the MV300.
-> **eMMC works too**, at HS400/150 MHz, after fixing an upstream bug that left
-> the HiSilicon reset controller silently unregistered. All 21 vendor partitions
-> parse and mount — see [docs/kernel.md](docs/kernel.md) and
-> [patches/kernel/](patches/kernel/).
 
 ## The box
 
@@ -56,6 +69,10 @@ docs/
   tftp-boot.md         booting a kernel from RAM over Ethernet, touching no flash
   aarch64-bringup.md   TF-A + mainline U-Boot running in 64-bit mode, no eMMC writes
   kernel.md            rebasing the out-of-tree CRG driver onto v7.2-rc5, board DTS
+  debian-usb.md        Debian rootfs on USB, unattended boot, the eMMC env change
+  usb.md               USB2 PHY reverse engineered out of the stock bootloader
+  wifi.md              RTL8822BS on SDIO, and the dtsi typo that hid the controller
+  ethernet.md          why the FE MAC finds no PHY; vendor FEPHY init decoded
   uart-access.md       serial console wiring, flow control, reaching the U-Boot prompt
 dts/
   hi3798mv300-tvbox.dts  board device tree for this box
@@ -71,6 +88,8 @@ scripts/
   tftpd.py             dependency-free read-only TFTP server for the host
   uart-term.py         serial terminal with hardware flow control forced off
   uart-cmd.py          run a command on the box over the serial console
+  mk-initramfs.sh      minimal busybox initramfs that switch_roots to the USB root
+  write-usb-rootfs.sh  write the Debian rootfs and kernel to the box's USB stick
   extract-dtb.py       pull FDT blobs out of boot/recovery/dtbo images
   dump-partitions.sh   dump every firmware partition to external storage
 ```
