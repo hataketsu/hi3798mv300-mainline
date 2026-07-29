@@ -23,7 +23,7 @@ The stock firmware is Android 9 (API 28) on kernel 4.9.118 from the HiSilicon
 | | |
 |---|---|
 | Boot chain | vendor bootloader → l-loader → TF-A → mainline U-Boot 2026.07 → Linux 7.2-rc5, all from eMMC |
-| CPU | 4× Cortex-A53 via PSCI, fixed at **1188 MHz** — measured; cpufreq and the OPP table describe a clock the cores do not use |
+| CPU | 4× Cortex-A53 via PSCI, fixed at **1200 MHz** — cpufreq needs a PLL retune sequence mainline does not implement |
 | eMMC | HS400 @ 150 MHz; **Debian roots off it**, no USB stick needed |
 | USB 2.0 | EHCI + OHCI, host + storage |
 | Wi-Fi | RTL8822BS on SDIO, mainline `rtw88`, firmware 27.2.0 |

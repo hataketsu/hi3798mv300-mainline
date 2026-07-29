@@ -1,6 +1,6 @@
 # CPU frequency
 
-The cores run at a fixed **1188 MHz** and nothing in Linux can change it. The
+The cores run at a fixed **1200 MHz** and nothing in Linux can change it. The
 `cpufreq` interface accepts requests, moves a clock mux, updates its own
 bookkeeping, and has no effect on the CPU whatsoever.
 
@@ -33,12 +33,13 @@ uint64_t t1 = cntvct_el0();
 
 | loop body | measured | implied clock |
 |---|---|---|
-| `subs`+`bne` — 1 cycle | 1189 Miter/s | **1188.8 MHz** |
+| `subs`+`bne` — 1 cycle | 1189 Miter/s | 1188.8 MHz |
 | plus one `nop` — 2 cycles | 596 Miter/s | **1193.0 MHz** |
 | plus two `nop` — 3 cycles | 399 Miter/s | **1196.0 MHz** |
 
 Adding one instruction halves the rate exactly, so the loop is issue-limited
-and the cycle model holds. The answer is 1188 MHz.
+and the cycle model holds. The register arithmetic below gives 1200 MHz, so the
+loop costs 1.006 cycles per iteration rather than exactly one.
 
 Forcing the governor anywhere makes no difference:
 
@@ -52,51 +53,84 @@ Forcing the governor anywhere makes no difference:
 `sysbench` agrees — 241–242 events/s at every setting, which is the same figure
 measured at every point in this port.
 
-## Where 1188 MHz comes from
+## Where 1200 MHz comes from
 
-Exactly one clock in the tree matches:
+The cores are fed by a dedicated **CPU PLL**, and the vendor changes their
+frequency by retuning it — not by moving any mux. `mpu_clk_set_rate()` in
+`source/msp/drv/pm/pm_v200/clock_mpu.c` reads the dividers, computes a new
+feedback divider, and drives a tune sequence:
 
-```
-apll  1596000000     bpll  1000000000     dpll   464000000
-vpll   900000000     hpll  1188000000     epll   858000000
-qpll   800000000
-```
+```c
+postdiv1 = (PERI_CRG_PLL0.cpu_pll_cfg0_apb >> 24) & 0x7;
+postdiv2 = (PERI_CRG_PLL0.cpu_pll_cfg0_apb >> 28) & 0x7;
+refdiv   = (PERI_CRG_PLL1.cpu_pll_cfg1_apb >> 12) & 0x3f;
+fbdiv    = (rate * postdiv1 * postdiv2 * refdiv) / 24000;
 
-`hpll` is 1188 MHz — 0.05 % from the measurement. It never moves, and
-`clk_summary` shows it with no consumers at all.
-
-Meanwhile `apll`, which the CRG driver says feeds `clk_cpu`, gets reprogrammed
-constantly by `schedutil` — 1596 MHz one moment, 600 or 1200 the next — with no
-effect on anything. Two reads seconds apart:
-
-```
-apll  1596000000  ...  clk_cpu  1596000000
-apll  1200000000  ...  clk_cpu  1200000000
-```
-
-So `drivers/clk/hisilicon/crg-hi3798mv200.c` describes `clk_cpu` as a mux over
-`apll` and a set of fixed clocks, and that description does not correspond to
-the hardware feeding the cores.
-
-## Switching the mux does not help either
-
-The obvious fix — drop `CLK_SET_RATE_PARENT` so the mux reparents instead of
-the core reprogramming `apll` — was built, booted and measured. It works
-perfectly at every level except the one that matters:
-
-```
-CRG 0x48 = 0x00000603      bits[2:0] = 3      the mux moved
-clk_cpu  = 1350000000                          the framework believes it
-cooling_device0 type=cpufreq-cpu0 max=7        one state per OPP
+PERI_CRG105.apll_tune_int_cfg  = fbdiv;
+PERI_CRG106.apll_tune_frac_cfg = 0;
+PERI_CRG107.apll_tune_step_int = 1;
+PERI_CRG109.apll_tune_mode     = 1;
+PERI_CRG109.apll_tune_en       = 0;   /* strobe */
+PERI_CRG109.apll_tune_en       = 1;
+while (PERI_CRG165.apll_tune_busy) udelay(10);
 ```
 
-The mux tracked every request — 3, 5, 2, 7, 6 for 1600 down to 400 MHz — and
-`sysbench` returned 241–242 events/s throughout. `apll` fell to 798 MHz once it
-was no longer selected, with no consumers left, and throughput still did not
-move.
+`CRGn` sits at CRG base + `n * 4`, so with the CRG at `0xf8a22000`:
 
-Reverted. It bought nothing and left `schedutil` flipping an unidentified clock
-mux during normal operation, which is a poor trade on a box running Klipper.
+| register | address | |
+|---|---|---|
+| `PERI_CRG_PLL0` | `0xf8a22000` | postdiv1 [26:24], postdiv2 [30:28] |
+| `PERI_CRG_PLL1` | `0xf8a22004` | refdiv [17:12], fbdiv [11:0] |
+| `PERI_CRG18` | `0xf8a22048` | source select and handshake |
+| `PERI_CRG105` | `0xf8a221a4` | `apll_tune_int_cfg` — the new fbdiv |
+| `PERI_CRG165` | `0xf8a22294` | `apll_tune_int`, `apll_tune_busy` |
+
+Reading them back on this box:
+
+```
+PLL0   = 0x12000000   postdiv1 = 2, postdiv2 = 1
+PLL1   = 0x0000210a   refdiv   = 2, fbdiv(reg) = 266
+CRG105 = 0x000000c8   apll_tune_int_cfg = 200
+CRG165 = 0x000010c8   apll_tune_int     = 200
+
+rate = 200 * 24 MHz / (2 * 1 * 2) = 1 200 000 kHz
+```
+
+The tune register overrides the divider in `PLL1`, which is why the raw `fbdiv`
+of 266 does not describe the running clock. **1200 MHz**, against a measured
+1188.8 MHz assuming exactly one cycle per loop iteration — 1.006 cycles per
+iteration, which is what that loop costs.
+
+`hpll` being 1188 MHz is a coincidence and led this investigation astray for a
+while. It has no consumers and is not involved.
+
+## The source select, and why moving it did nothing
+
+`PERI_CRG18` at `0xf8a22048` is the selector the mainline CRG driver already
+describes:
+
+```
+bits [2:0]  cpu_freq_sel_cfg_crg   0 = CPU PLL, 1 = 200m, 2 = 800m, 3 = 1350m,
+                                   4 = 24m,     5 = 1200m, 6 = 400m, 7 = 600m
+bit  [9]    cpu_begin_cfg_bypass
+bit  [10]   cpu_sw_begin_cfg
+bit  [12]   cpu_clk_pctrl
+```
+
+That mapping is exactly `cpu_mux_p[]` in `crg-hi3798mv200.c`, and the offset is
+right too. Live value is `0x600`: source 0, and both handshake bits already
+set.
+
+So the mainline driver has the correct register and the correct parent list,
+and moving the field still changed nothing measurable. The vendor never touches
+that field either — `mpu_clk_set_rate()` only reads it, in `mpu_clk_get_rate()`,
+to know which source to report. Every frequency change the vendor makes is a
+PLL retune with the selector left on 0.
+
+What mainline is missing is the retune sequence. `hisi_pll_set_rate()` writes
+the PLL registers at CRG offset 0 directly and never drives `CRG105`–`CRG109`
+or waits on `apll_tune_busy`, so the rate it reports — 1596, 1200, 600 MHz as
+`schedutil` moves it — is bookkeeping with nothing behind it.
 
 ## The vendor does not do this either
 
@@ -197,9 +231,9 @@ bigger claim than undervolting a CPU that has its own supply.
 
 ## What it would take
 
-1. Find what actually clocks the cores. `hpll` is the candidate on rate alone;
-   nothing in the CRG driver claims it, so the register that selects and
-   divides it has not been identified.
+1. Implement the PLL retune. The registers and the sequence are known — see
+   above — but `hisi_pll_set_rate()` does not use them, so a `clk_set_rate()`
+   on the CPU clock updates bookkeeping and nothing else.
 2. Wire the supply up as a `pwm-regulator` — mainline already has the driver;
    what is missing is a PWM driver for the PMC block — and give the OPP table
    `opp-microvolt` plus a `cpu-supply`. Without that a frequency change is
@@ -213,7 +247,7 @@ answers (1).
 
 ## Consequences for the rest of this port
 
-Benchmark figures elsewhere are at 1188 MHz, not the 1.6 GHz the OPP table
+Benchmark figures elsewhere are at 1200 MHz, not the 1.6 GHz the OPP table
 advertises:
 
 | | |
