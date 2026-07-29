@@ -1,0 +1,86 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: hi3798 port <port@localhost>
+Date: Wed, 29 Jul 2026 15:30:00 +0000
+Subject: [PATCH] arm64: dts: hisilicon: add the Hi3798MV200 tsensor and its
+ thermal zone
+
+Describes the PMC temperature sensor and gives it a zone with the trip
+temperatures the vendor device tree uses, 95 degC passive and 105 degC
+critical.
+
+The vendor node has no reg -- its driver hardcodes 0xf8a23000 -- so the
+register window here is taken from
+drivers/hisilicon/thermal/hi3798cvx-thermal.c in the BSP.
+
+No cooling map. cpufreq on this SoC accepts rate changes and does not act on
+them: clk_cpu is a mux over apll and a set of fixed clocks, but it carries
+CLK_SET_RATE_PARENT, so the clock core reprograms the PLL instead of
+reparenting and the CPU stays at 1.596 GHz whatever is requested. Until that
+is fixed a passive trip has nothing to throttle. The critical trip still
+protects the part.
+---
+ arch/arm64/boot/dts/hisilicon/hi3798mv200.dtsi | 41 ++++++++++++++++++++
+ 1 file changed, 41 insertions(+)
+
+diff --git a/arch/arm64/boot/dts/hisilicon/hi3798mv200.dtsi b/arch/arm64/boot/dts/hisilicon/hi3798mv200.dtsi
+index e9d0d384c1bb..ebfa0506c4cc 100644
+--- a/arch/arm64/boot/dts/hisilicon/hi3798mv200.dtsi
++++ b/arch/arm64/boot/dts/hisilicon/hi3798mv200.dtsi
+@@ -174,6 +174,35 @@ IRQ_TYPE_LEVEL_LOW)>,
+ 			      IRQ_TYPE_LEVEL_LOW)>;
+ 	};
+ 
++	thermal-zones {
++		soc-thermal {
++			polling-delay = <1000>;
++			polling-delay-passive = <250>;
++			thermal-sensors = <&tsensor>;
++
++			/*
++			 * Trip temperatures match the vendor device tree. No
++			 * cooling map yet: cpufreq on this SoC accepts rate
++			 * changes without acting on them, so there is nothing
++			 * for a passive trip to throttle. The critical trip
++			 * still protects the part.
++			 */
++			trips {
++				soc_alert: soc-alert {
++					temperature = <95000>;
++					hysteresis = <5000>;
++					type = "passive";
++				};
++
++				soc_crit: soc-crit {
++					temperature = <105000>;
++					hysteresis = <0>;
++					type = "critical";
++				};
++			};
++		};
++	};
++
+ 	soc: soc@f0000000 {
+ 		compatible = "simple-bus";
+ 		#address-cells = <1>;
+@@ -349,6 +386,18 @@ crg: clock-reset-controller@8a22000 {
+ 			#reset-cells = <2>;
+ 		};
+ 
++		/*
++		 * Temperature sensor in the PMC block. The vendor device tree
++		 * describes it with no reg at all -- its driver hardcodes the
++		 * address -- so the register window here comes from
++		 * drivers/hisilicon/thermal/hi3798cvx-thermal.c in the BSP.
++		 */
++		tsensor: tsensor@8a23000 {
++			compatible = "hisilicon,hi3798mv200-tsensor";
++			reg = <0x8a23000 0x1000>;
++			#thermal-sensor-cells = <0>;
++		};
++
+ 		wdg0: watchdog@8a2c000 {
+ 			compatible = "arm,sp805", "arm,primecell";
+ 			/* arm primecell periphid registers are not implemented for this SoC */
+--
+2.43.0
+

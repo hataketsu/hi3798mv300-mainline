@@ -1,0 +1,45 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: hi3798 port <port@localhost>
+Date: Wed, 29 Jul 2026 08:20:00 +0000
+Subject: [PATCH] arm64: dts: hisilicon: add the Hi3798MV200 IR receiver
+
+drivers/media/rc/ir-hix5hd2.c has been in tree since 2014 and matches this
+block, but hi3798mv200.dtsi never described it, so nothing probes.
+
+The vendor device tree has it at 0xf8001000 on SPI 47. Its clock is already
+in crg-hi3798mv200.c, in the sysctrl half rather than the CRG:
+
+  { HI3798MV200_IR_CLK, "clk_ir", "clk_osc",
+	  CLK_SET_RATE_PARENT, 0x48, 4, 0, },
+
+which is how hi3798cv200.dtsi wires up the same block. 0xf8001000 sits in the
+always-on region next to sysctrl and gpio5 -- a remote has to be able to wake
+a box that is off.
+
+Left disabled; boards enable it and pick a keymap.
+---
+ arch/arm64/boot/dts/hisilicon/hi3798mv200.dtsi | 8 ++++++++
+ 1 file changed, 8 insertions(+)
+
+diff --git a/arch/arm64/boot/dts/hisilicon/hi3798mv200.dtsi b/arch/arm64/boot/dts/hisilicon/hi3798mv200.dtsi
+index e9d0d384c1bb..ebfa0506c4cc 100644
+--- a/arch/arm64/boot/dts/hisilicon/hi3798mv200.dtsi
++++ b/arch/arm64/boot/dts/hisilicon/hi3798mv200.dtsi
+@@ -187,6 +216,14 @@ sysctrl: system-controller@8000000 {
+ 			#reset-cells = <2>;
+ 		};
+ 
++		ir: ir@8001000 {
++			compatible = "hisilicon,hix5hd2-ir";
++			reg = <0x8001000 0x1000>;
++			interrupts = <GIC_SPI 47 IRQ_TYPE_LEVEL_HIGH>;
++			clocks = <&sysctrl HI3798MV200_IR_CLK>;
++			status = "disabled";
++		};
++
+ 		gpio5: gpio@8004000 {
+ 			compatible = "arm,pl061", "arm,primecell";
+ 			reg = <0x8004000 0x1000>;
+--
+2.43.0
+

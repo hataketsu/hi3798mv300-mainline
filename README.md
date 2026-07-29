@@ -23,7 +23,7 @@ The stock firmware is Android 9 (API 28) on kernel 4.9.118 from the HiSilicon
 | | |
 |---|---|
 | Boot chain | vendor bootloader → l-loader → TF-A → mainline U-Boot 2026.07 → Linux 7.2-rc5, all from eMMC |
-| CPU | 4× Cortex-A53 via PSCI, cpufreq 798 MHz → 1.2 GHz |
+| CPU | 4× Cortex-A53 via PSCI, pinned at 1.596 GHz — cpufreq accepts rate changes but never acts on them |
 | eMMC | HS400 @ 150 MHz; **Debian roots off it**, no USB stick needed |
 | USB 2.0 | EHCI + OHCI, host + storage |
 | Wi-Fi | RTL8822BS on SDIO, mainline `rtw88`, firmware 27.2.0 |
@@ -32,11 +32,12 @@ The stock firmware is Android 9 (API 28) on kernel 4.9.118 from the HiSilicon
 | IR | `hix5hd2-ir` at `0xf8001000`, raw pulses on `/dev/lirc0` and scancodes after the in-kernel decoders |
 | LEDs | both front-panel LEDs on `gpio5`, exposed as `/sys/class/leds` with triggers |
 | GPIO/pinctrl | `gpio5` works; gpio0-gpio9 defer forever, waiting on a pinctrl driver |
+| Thermal | SoC sensor exposed as `thermal_zone0`; 56 °C idle, 70 °C under full load |
 | USB 3.0 | still disabled |
 
 Details: [docs/emmc-install.md](docs/emmc-install.md), [docs/debian-usb.md](docs/debian-usb.md), [docs/usb.md](docs/usb.md),
 [docs/wifi.md](docs/wifi.md), [docs/ethernet.md](docs/ethernet.md),
-[docs/ir.md](docs/ir.md), [docs/leds.md](docs/leds.md),
+[docs/ir.md](docs/ir.md), [docs/leds.md](docs/leds.md), [docs/thermal.md](docs/thermal.md),
 [docs/kernel.md](docs/kernel.md), [patches/kernel/](patches/kernel/).
 
 > Mainline **U-Boot already supports this SoC family** and builds unpatched for
@@ -83,6 +84,7 @@ docs/
   ethernet.md          three defects between the FE MAC and its PHY, and the fixes
   ir.md                IR receiver, the sysctrl clock it needs, enabling the decoders
   leds.md              finding two undocumented front-panel LEDs by measurement
+  thermal.md           the SoC temperature sensor, and why cpufreq does nothing
   uart-access.md       serial console wiring, flow control, reaching the U-Boot prompt
 dts/
   hi3798mv300-tvbox.dts  board device tree for this box

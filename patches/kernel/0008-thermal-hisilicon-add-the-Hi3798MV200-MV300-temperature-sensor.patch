@@ -1,0 +1,238 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: hi3798 port <port@localhost>
+Date: Wed, 29 Jul 2026 15:29:00 +0000
+Subject: [PATCH] thermal: hisilicon: add the Hi3798MV200/MV300 temperature
+ sensor
+
+The Hi3798MV200 and MV300 carry a temperature sensor in their PMC block. It
+has nothing in common with the tsensor hisi_thermal.c drives on Hi6220 and
+Hi3660: different registers, different sampling, different conversion. There
+is no binding for it either -- the vendor device tree carries a bare
+
+	hisi-sensor@0 { compatible = "arm,hisi-thermal"; };
+
+with no reg at all, because the vendor driver hardcodes the address.
+
+Reading it means enabling the sensor, waiting ~16 ms for it to settle,
+collecting eight 10-bit samples packed two per word from 0x30..0x3c, and
+applying a linear fit. The magic enable value and the fit coefficients come
+from drivers/hisilicon/thermal/hi3798cvx-thermal.c in the HiSilicon
+HiSTBLinuxV100R005C00 BSP.
+
+Readings outside -40..150 degC are rejected rather than reported: the zone's
+critical trip powers the board off, and one spurious sample should not do
+that.
+
+Measured on a Hi3798MV300 TV box: 56-58 degC idle, plateauing at 70-72 degC
+after ninety seconds of four-thread load, against trip points of 95 and 105.
+---
+ drivers/thermal/Kconfig         |  11 ++
+ drivers/thermal/Makefile        |   1 +
+ drivers/thermal/hi3798-thermal.c| 179 ++++++++++++++++++++++++++++++++
+ 3 files changed, 191 insertions(+)
+ create mode 100644 drivers/thermal/hi3798-thermal.c
+
+diff --git a/drivers/thermal/Kconfig b/drivers/thermal/Kconfig
+index 810eeccedfba..9244e8cbf36d 100644
+--- a/drivers/thermal/Kconfig
++++ b/drivers/thermal/Kconfig
+@@ -252,6 +252,16 @@ config THERMAL_MMIO
+ 	  register or shared memory, is a potential candidate to work with this
+ 	  driver.
+ 
++config HI3798_THERMAL
++	tristate "HiSilicon Hi3798MV200/MV300 temperature sensor"
++	depends on ARCH_HISI || COMPILE_TEST
++	depends on HAS_IOMEM
++	depends on OF
++	help
++	  Temperature sensor in the PMC block of the Hi3798MV200 and
++	  Hi3798MV300 set-top box SoCs. Unrelated to HISI_THERMAL, which
++	  drives a different sensor on Hi6220 and Hi3660.
++
+ config HISI_THERMAL
+ 	tristate "Hisilicon thermal driver"
+ 	depends on ARCH_HISI || COMPILE_TEST
+diff --git a/drivers/thermal/Makefile b/drivers/thermal/Makefile
+index 3b249195c088..527cc20ac7bd 100644
+--- a/drivers/thermal/Makefile
++++ b/drivers/thermal/Makefile
+@@ -60,6 +60,7 @@ obj-$(CONFIG_TI_SOC_THERMAL)	+= ti-soc-thermal/
+ obj-y				+= st/
+ obj-y				+= qcom/
+ obj-y				+= tegra/
++obj-$(CONFIG_HI3798_THERMAL)   += hi3798-thermal.o
+ obj-$(CONFIG_HISI_THERMAL)     += hisi_thermal.o
+ obj-y				+= mediatek/
+ obj-$(CONFIG_GENERIC_ADC_THERMAL)	+= thermal-generic-adc.o
+diff --git a/drivers/thermal/hi3798-thermal.c b/drivers/thermal/hi3798-thermal.c
+new file mode 100644
+index 000000000000..e49d505ffed5
+--- /dev/null
++++ b/drivers/thermal/hi3798-thermal.c
+@@ -0,0 +1,162 @@
++// SPDX-License-Identifier: GPL-2.0
++/*
++ * Temperature sensor for HiSilicon Hi3798MV200/MV300 SoCs.
++ *
++ * The sensor lives in the PMC block and has nothing in common with the
++ * tsensor that drivers/thermal/hisi_thermal.c drives on Hi6220 and Hi3660 --
++ * different registers, different sampling scheme, different conversion. It is
++ * not described by any binding either; the vendor device tree carries a bare
++ *
++ *	hisi-sensor@0 { compatible = "arm,hisi-thermal"; };
++ *
++ * with no reg at all, because the vendor driver hardcodes the address.
++ *
++ * Reading it means enabling the sensor, waiting for it to settle, collecting
++ * eight 10-bit samples packed two per word, and applying a linear fit. All of
++ * that, including the magic enable value and the fit coefficients, is taken
++ * from drivers/hisilicon/thermal/hi3798cvx-thermal.c in the HiSilicon
++ * HiSTBLinuxV100R005C00 BSP.
++ *
++ * Copyright (c) 2026
++ */
++
++#include <linux/delay.h>
++#include <linux/io.h>
++#include <linux/mod_devicetable.h>
++#include <linux/module.h>
++#include <linux/mutex.h>
++#include <linux/platform_device.h>
++#include <linux/thermal.h>
++
++#define HI3798_TSENSOR_CTRL		0x28
++#define HI3798_TSENSOR_DATA		0x30
++
++/* Vendor magic. Bit 0 looks like the enable; the rest is undocumented. */
++#define HI3798_TSENSOR_ENABLE		0x6005
++#define HI3798_TSENSOR_DISABLE		0x0
++
++/* Four words, two 10-bit samples each. */
++#define HI3798_TSENSOR_WORDS		4
++#define HI3798_TSENSOR_SAMPLES		(HI3798_TSENSOR_WORDS * 2)
++#define HI3798_TSENSOR_SAMPLE_MASK	0x3ff
++
++/*
++ * Settling time before the samples are valid. The vendor driver uses a flat
++ * mdelay(16); this runs from the thermal core's work queue, so it can sleep.
++ */
++#define HI3798_TSENSOR_SETTLE_US	16000
++
++/* Linear fit: millicelsius = ((avg - 125) * 165 / 806 - 40) * 1000 */
++#define HI3798_TSENSOR_OFFSET		125
++#define HI3798_TSENSOR_MUL		165
++#define HI3798_TSENSOR_DIV		806
++#define HI3798_TSENSOR_BIAS		40
++
++/*
++ * Anything outside this is a misread rather than a real temperature. Reporting
++ * it would be worse than reporting nothing: the zone's critical trip powers
++ * the board off, and a single spurious sample should not do that.
++ */
++#define HI3798_TEMP_MIN_MC		(-40000)
++#define HI3798_TEMP_MAX_MC		(150000)
++
++struct hi3798_thermal {
++	void __iomem *regs;
++	struct mutex lock;	/* serialises the enable/sample/disable cycle */
++};
++
++static int hi3798_thermal_get_temp(struct thermal_zone_device *tz, int *temp)
++{
++	struct hi3798_thermal *data = thermal_zone_device_priv(tz);
++	unsigned int sum = 0;
++	int i, millicelsius;
++
++	mutex_lock(&data->lock);
++
++	writel(HI3798_TSENSOR_ENABLE, data->regs + HI3798_TSENSOR_CTRL);
++	usleep_range(HI3798_TSENSOR_SETTLE_US, HI3798_TSENSOR_SETTLE_US + 2000);
++
++	for (i = 0; i < HI3798_TSENSOR_WORDS; i++) {
++		u32 val = readl(data->regs + HI3798_TSENSOR_DATA + i * 4);
++
++		sum += val & HI3798_TSENSOR_SAMPLE_MASK;
++		sum += (val >> 16) & HI3798_TSENSOR_SAMPLE_MASK;
++	}
++
++	writel(HI3798_TSENSOR_DISABLE, data->regs + HI3798_TSENSOR_CTRL);
++
++	mutex_unlock(&data->lock);
++
++	sum /= HI3798_TSENSOR_SAMPLES;
++
++	millicelsius = ((int)sum - HI3798_TSENSOR_OFFSET) * HI3798_TSENSOR_MUL;
++	millicelsius = millicelsius / HI3798_TSENSOR_DIV - HI3798_TSENSOR_BIAS;
++	millicelsius *= 1000;
++
++	if (millicelsius < HI3798_TEMP_MIN_MC ||
++	    millicelsius > HI3798_TEMP_MAX_MC)
++		return -EAGAIN;
++
++	*temp = millicelsius;
++
++	return 0;
++}
++
++static const struct thermal_zone_device_ops hi3798_thermal_ops = {
++	.get_temp = hi3798_thermal_get_temp,
++};
++
++static int hi3798_thermal_probe(struct platform_device *pdev)
++{
++	struct device *dev = &pdev->dev;
++	struct thermal_zone_device *tzd;
++	struct hi3798_thermal *data;
++	int temp, ret;
++
++	data = devm_kzalloc(dev, sizeof(*data), GFP_KERNEL);
++	if (!data)
++		return -ENOMEM;
++
++	data->regs = devm_platform_ioremap_resource(pdev, 0);
++	if (IS_ERR(data->regs))
++		return PTR_ERR(data->regs);
++
++	mutex_init(&data->lock);
++	platform_set_drvdata(pdev, data);
++
++	tzd = devm_thermal_of_zone_register(dev, 0, data, &hi3798_thermal_ops);
++	if (IS_ERR(tzd))
++		return dev_err_probe(dev, PTR_ERR(tzd),
++				     "failed to register thermal zone\n");
++
++	/*
++	 * Take one reading now. A sensor that cannot produce a plausible
++	 * number is better found here than at the first trip evaluation.
++	 */
++	ret = hi3798_thermal_get_temp(tzd, &temp);
++	if (ret)
++		return dev_err_probe(dev, ret, "sensor returned no valid reading\n");
++
++	dev_info(dev, "tsensor registered, %d.%03d degC\n",
++		 temp / 1000, abs(temp % 1000));
++
++	return 0;
++}
++
++static const struct of_device_id hi3798_thermal_of_match[] = {
++	{ .compatible = "hisilicon,hi3798mv200-tsensor" },
++	{ }
++};
++MODULE_DEVICE_TABLE(of, hi3798_thermal_of_match);
++
++static struct platform_driver hi3798_thermal_driver = {
++	.probe = hi3798_thermal_probe,
++	.driver = {
++		.name = "hi3798-thermal",
++		.of_match_table = hi3798_thermal_of_match,
++	},
++};
++module_platform_driver(hi3798_thermal_driver);
++
++MODULE_DESCRIPTION("HiSilicon Hi3798MV200/MV300 temperature sensor");
++MODULE_LICENSE("GPL");
+--
+2.43.0
+
