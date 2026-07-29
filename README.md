@@ -23,7 +23,7 @@ The stock firmware is Android 9 (API 28) on kernel 4.9.118 from the HiSilicon
 | | |
 |---|---|
 | Boot chain | vendor bootloader → l-loader → TF-A → mainline U-Boot 2026.07 → Linux 7.2-rc5, all from eMMC |
-| CPU | 4× Cortex-A53 via PSCI, pinned at ~1.596 GHz — cpufreq moves the clock mux the driver describes, the cores ignore it |
+| CPU | 4× Cortex-A53 via PSCI, fixed at **1188 MHz** — measured; cpufreq and the OPP table describe a clock the cores do not use |
 | eMMC | HS400 @ 150 MHz; **Debian roots off it**, no USB stick needed |
 | USB 2.0 | EHCI + OHCI, host + storage |
 | Wi-Fi | RTL8822BS on SDIO, mainline `rtw88`, firmware 27.2.0 |
@@ -38,6 +38,7 @@ The stock firmware is Android 9 (API 28) on kernel 4.9.118 from the HiSilicon
 Details: [docs/emmc-install.md](docs/emmc-install.md), [docs/debian-usb.md](docs/debian-usb.md), [docs/usb.md](docs/usb.md),
 [docs/wifi.md](docs/wifi.md), [docs/ethernet.md](docs/ethernet.md),
 [docs/ir.md](docs/ir.md), [docs/leds.md](docs/leds.md), [docs/thermal.md](docs/thermal.md),
+[docs/cpufreq.md](docs/cpufreq.md),
 [docs/kernel.md](docs/kernel.md), [patches/kernel/](patches/kernel/).
 
 > Mainline **U-Boot already supports this SoC family** and builds unpatched for
@@ -84,7 +85,8 @@ docs/
   ethernet.md          three defects between the FE MAC and its PHY, and the fixes
   ir.md                IR receiver, the sysctrl clock it needs, enabling the decoders
   leds.md              finding two undocumented front-panel LEDs by measurement
-  thermal.md           the SoC temperature sensor, and why cpufreq does nothing
+  thermal.md           the SoC temperature sensor and what the box actually runs at
+  cpufreq.md           the cores are fixed at 1188 MHz; measuring it, and why
   uart-access.md       serial console wiring, flow control, reaching the U-Boot prompt
 dts/
   hi3798mv300-tvbox.dts  board device tree for this box
