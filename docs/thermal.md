@@ -116,10 +116,9 @@ static const char *const cpu_mux_p[] = { "apll", "200m", "800m", "1350m",
 	CLK_SET_RATE_PARENT, 0x48, 0, 3, CLK_MUX_ROUND_CLOSEST, cpu_mux_table },
 ```
 
-so the hardware plainly intends the mux to be switched. But `clk_cpu` carries
-`CLK_SET_RATE_PARENT`, and `apll` is a PLL with a working `.set_rate`, so the
-clock core keeps the mux where it is and tries to reprogram the PLL instead of
-reparenting. CRG `0x48` bits [2:0] stay at 0 — `apll` — no matter what is
+and `clk_cpu` carries `CLK_SET_RATE_PARENT`, so with `apll` offering a working
+`.set_rate` the clock core keeps the mux where it is and reprograms the PLL
+instead of reparenting. CRG `0x48` bits [2:0] stay at 0 — `apll` — whatever is
 requested:
 
 ```
@@ -127,11 +126,45 @@ requested:
 0x00000600      bits[2:0] = 0 = apll
 ```
 
-Dropping `CLK_SET_RATE_PARENT` from that entry is the obvious candidate fix.
-It is untested here: the box does real work now, the benefit is idle power
-rather than safety given the 25 °C of headroom, and changing the CPU clock mux
-on a running system is not a free experiment. A passive trip and a
-`cooling-maps` entry should follow once it works.
+### Dropping that flag does not help
+
+Removing `CLK_SET_RATE_PARENT` and adding `#cooling-cells` plus a
+`cooling-maps` entry was tried, built and booted. Everything downstream did
+exactly what it was supposed to:
+
+```
+CRG 0x48 = 0x00000603      bits[2:0] = 3      the mux moved
+clk_cpu  = 1350000000                          the core believes it
+cooling_device0 type=cpufreq-cpu0 max=7        eight states, one per OPP
+```
+
+and the mux tracked every request — 3, 5, 2, 7, 6 for 1600, 1200, 800, 600,
+400 MHz, with `cpuinfo_cur_freq` agreeing each time.
+
+The CPU ignored all of it:
+
+| requested | mux | sysbench |
+|---|---|---|
+| 1600 MHz | 3 | 241.3 events/s |
+| 1200 MHz | 5 | 242.2 events/s |
+| 800 MHz | 2 | 242.2 events/s |
+| 600 MHz | 7 | 242.2 events/s |
+| 400 MHz | 6 | 241.1 events/s |
+
+`apll` also fell to 798 MHz once it stopped being the mux's selected parent,
+with no consumers left in `clk_summary` — and performance still did not move.
+If the cores were fed by `apll`, halving it would have halved throughput.
+
+So `clk_cpu` is not the clock the CPU runs on, and CRG `0x48` bits [2:0] drive
+something else. The CRG driver's description is wrong somewhere, and the real
+CPU clock has not been found. Everything measured across this port — before
+the change, after it, at every OPP — comes out at ~242 events/s, which is
+about 1.6 GHz on this core.
+
+The change was reverted. It bought nothing measurable and left `schedutil`
+flipping an unidentified clock mux during normal operation, which is a poor
+trade on a box that runs Klipper. Anyone picking this up again should start by
+finding what actually feeds the cores, not by adjusting flags on `clk_cpu`.
 
 ## Patches
 
