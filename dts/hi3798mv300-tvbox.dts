@@ -117,6 +117,49 @@
 };
 
 /*
+ * SDIO, which is where the Wi-Fi lives -- an RTL8822BS, handled by rtw88.
+ *
+ * The vendor DTS calls this controller `himciv200.SD@f9c40000` and gives it
+ * caps 0x8007000f: 4-bit data, high speed, SDIO interrupts and the SDR modes.
+ * Notably it declares no power-enable GPIO, unlike most Realtek SDIO parts, so
+ * no mmc-pwrseq is needed here -- which is just as well, because the GPIO banks
+ * still do not probe.
+ *
+ * `broken-cd` plus `non-removable` because there is no card detect line: the
+ * chip is soldered down.
+ *
+ * rtw88 is built as a module on purpose. It requests firmware during probe,
+ * and the SDIO card is found about a second into boot, long before the root
+ * filesystem exists -- built in, it would fail before /lib/firmware is there
+ * to read.
+ */
+&sd1 {
+	/*
+	 * The dtsi spells this node's compatible "hi3798mv200,dw-mshc", while
+	 * the two other controllers -- and the driver's match table -- use
+	 * "hisilicon,hi3798mv200-dw-mshc". Vendor and family are transposed, so
+	 * nothing matches and the controller is simply never probed: no mmc2,
+	 * no dmesg line, and nothing in devices_deferred either, because a
+	 * device with no driver is not deferred, it is ignored.
+	 */
+	compatible = "hisilicon,hi3798mv200-dw-mshc";
+
+	/delete-property/ pinctrl-0;
+	/delete-property/ pinctrl-names;
+
+	bus-width = <4>;
+	max-frequency = <50000000>;
+	cap-sd-highspeed;
+	cap-sdio-irq;
+	sd-uhs-sdr12;
+	sd-uhs-sdr25;
+	sd-uhs-sdr50;
+	non-removable;
+	broken-cd;
+	status = "okay";
+};
+
+/*
  * The FE PHY sits at MDIO address 2 on this board, not the address 1 the dtsi
  * assumes. Both the stock environment (phy_addr=2,1) and the stock bootloader's
  * own probe ("Eth up port phy at 0x02 is connect") agree on this.
@@ -178,53 +221,73 @@
 /*
  * USB2 PHY.
  *
- * The dtsi describes the PHY as a child of a `usb2phy-test-bus` node with no
- * `reg` of its own, expecting a bus driver to hand it a regmap. No such driver
- * exists -- not in mainline and not in the out-of-tree tree the dtsi came from
- * -- so the upstream phy-hisi-inno-usb2 driver, which ioremaps its own reg,
- * fails outright:
+ * This one had to be reverse engineered out of the stock bootloader, because
+ * neither the vendor device tree nor the dtsi describes it usably.
+ *
+ * The vendor DTS has no PHY node at all -- its `hiusbotg` node just maps OHCI,
+ * EHCI and a lone word at 0xf8a2012c, and the BSP does PHY setup in C. The
+ * dtsi, meanwhile, puts the PHY under a `usb2phy-test-bus` node with no `reg`
+ * of its own, expecting a bus driver that exists in no tree, so the upstream
+ * driver fails on its own ioremap:
  *
  *   hisi-inno-phy f9865000.usb-phy-bus:usb-phy: error -EINVAL: invalid resource
- *   hisi-inno-phy f9960000.usb-phy-bus:usb-phy: probe failed with error -22
  *
- * The vendor firmware says where the register actually is. Its OTG node maps
- * three regions -- OHCI, EHCI, and a lone 32-bit word:
+ * Guessing 0xf8a2012c from the OTG node was wrong. The driver bound and both
+ * host controllers registered, but every port then timed out:
  *
- *   hi3798cv200.hiusbotg {
- *       reg = <0xf9880000 0x10000  0xf9890000 0x10000  0xf8a2012c 0x04>;
- *   };
+ *   ehci-platform f9890000.usb: port 2 reset error -110
  *
- * 0xf8a2012c is offset 0x12c inside perictrl, and a single 32-bit register is
- * exactly what the INNO driver drives -- it pokes one test-port word to reach
- * the PHY's internal registers. Upstream hi3798cv200 uses 0x120 in the same
- * block, so this is the familiar layout at a different offset.
+ * The stock bootloader has the answer. In the fastboot image its USB2 init
+ * routine selects a base by chip ID:
  *
- * Declaring the PHY there lets the stock upstream driver bind, with no
- * out-of-tree phy patches at all. The dtsi's usb2_phy1/usb2_phy2 nodes stay
- * disabled and unused.
+ *   ldr r2, [pc, #236]   ; 0x37980210   <- this chip
+ *   cmpeq r0, r2
+ *   bne   <other model>
+ *   ldr r4, [pc, #212]   ; 0xf9865fff
  *
- * USB3 (xhci/dwc3/combphy) is still off. It needs combphy as well, and its
- * earlier oops -- a bad pointer in fwnode_reset_control_array_get -- was the
- * uninitialised reset controller fixed in patches/kernel/0003, so it is worth
- * retrying, but one thing at a time.
+ * and then writes through r4 with negative offsets:
+ *
+ *   str r3, [r4, #-4095] -> 0xf9865000   reg 0x00 = 0x18
+ *   str r3, [r4, #-3071] -> 0xf9865400   reg 0x00 = 0x18
+ *   str r3, [r4, #-4079] -> 0xf9865010   reg 0x04 = 0xd7
+ *   str r3, [r4, #-3979] -> 0xf9865074   reg 0x1d = 0x1e
+ *   str r3, [r4, #-3971] -> 0xf986507c   reg 0x1f = 0x6e
+ *
+ * So this SoC does not use the hi3798cv200 test-port protocol, where one word
+ * is bit-banged with address, data and a clock bit. Its PHY registers are
+ * mapped directly: a 4 KiB window at 0xf9865000, one 32-bit word per 8-bit
+ * register, and port 1 a further 0x400 along. That is exactly what the
+ * Hi3798MV200 support patch in patches/kernel/ implements -- it ioremaps each
+ * port child and writes `base + addr * 4`.
+ *
+ * The routine finishes by clearing bits 8 and 9 of CRG 0xbc, which confirms the
+ * per-port resets below are the right ones.
+ *
+ * The extra `<&crg 0xbc 15>` is the reset the dtsi hangs on the test-bus node.
+ * Nothing drives that bus here, so the PHY has to release it itself, which is
+ * why the driver moved to reset_control_array. The bus's APB clock is left as
+ * the bootloader set it, on the same reasoning as the MMC pinctrl above.
+ *
+ * USB3 (xhci/dwc3/combphy) is still off -- one thing at a time.
  */
-&perictrl {
-	tvbox_usb2_phy: usb2-phy@12c {
-		compatible = "hisilicon,inno-usb2-phy";
-		reg = <0x12c 0x4>;
+&soc {
+	tvbox_usb2_phy: usb2-phy@9865000 {
+		compatible = "hisilicon,hi3798mv200-usb2-phy";
+		reg = <0x9865000 0x1000>;
 		clocks = <&crg HI3798MV200_USB2_PHY2_REF_CLK>;
-		resets = <&crg 0xbc 4>;
+		resets = <&crg 0xbc 4>, <&crg 0xbc 15>;
 		#address-cells = <1>;
-		#size-cells = <0>;
+		#size-cells = <1>;
+		ranges = <0x0 0x9865000 0x1000>;
 
 		tvbox_usb2_port0: phy@0 {
-			reg = <0>;
+			reg = <0x0 0x400>;
 			resets = <&crg 0xbc 8>;
 			#phy-cells = <0>;
 		};
 
-		tvbox_usb2_port1: phy@1 {
-			reg = <1>;
+		tvbox_usb2_port1: phy@400 {
+			reg = <0x400 0x400>;
 			resets = <&crg 0xbc 9>;
 			#phy-cells = <0>;
 		};

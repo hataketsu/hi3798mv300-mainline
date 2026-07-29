@@ -1,0 +1,110 @@
+From a69b2c9b077f77000f185b218540f310f5bd5185 Mon Sep 17 00:00:00 2001
+From: hi3798 port <port@localhost>
+Date: Wed, 29 Jul 2026 03:18:02 +0000
+Subject: [PATCH 3/3] phy: hisilicon: hisi-inno-phy: program the Hi3798MV300
+ setup registers
+
+Enabling the PHY clock is not enough on this SoC. With only register 0x06
+written, the PHY stays unconfigured and every port times out:
+
+  ehci-platform f9890000.usb: port 2 reset error -110
+
+The stock bootloader writes five more registers per port first. Its USB2
+init routine picks a base by chip ID and then programs them through it:
+
+  ldr r2, [pc, #236]   ; 0x37980210
+  cmpeq r0, r2
+  ldr r4, [pc, #212]   ; 0xf9865fff
+  str r3, [r4, #-4071] ; 0xf9865018 -> reg 0x06 = 0x04
+  str r3, [r4, #-4087] ; 0xf9865008 -> reg 0x02 = 0x6c
+  str r3, [r4, #-4095] ; 0xf9865000 -> reg 0x00 = 0x18
+  str r3, [r4, #-4079] ; 0xf9865010 -> reg 0x04 = 0xd7
+  str r3, [r4, #-3979] ; 0xf9865074 -> reg 0x1d = 0x1e
+  str r3, [r4, #-3971] ; 0xf986507c -> reg 0x1f = 0x6e
+
+each also repeated 0x400 further along for port 1, with delays between the
+groups. The registers are undocumented, so the values are carried over as
+they are. Only the MMIO variant is affected; the test-port models keep the
+old behaviour.
+
+Also warn when a port child has no mappable reg. The driver silently falls
+back to the test-port protocol in that case, which on this SoC writes to
+the wrong place and looks exactly like a dead PHY.
+---
+ drivers/phy/hisilicon/phy-hisi-inno-usb2.c | 47 +++++++++++++++++++++-
+ 1 file changed, 46 insertions(+), 1 deletion(-)
+
+diff --git a/drivers/phy/hisilicon/phy-hisi-inno-usb2.c b/drivers/phy/hisilicon/phy-hisi-inno-usb2.c
+index b84e3acb063b..5044e11bdc55 100644
+--- a/drivers/phy/hisilicon/phy-hisi-inno-usb2.c
++++ b/drivers/phy/hisilicon/phy-hisi-inno-usb2.c
+@@ -92,13 +92,55 @@ static void hisi_inno_phy_write_reg(struct hisi_inno_phy_priv *priv,
+ 	}
+ }
+ 
++/*
++ * Hi3798MV300 needs more than the clock-enable register.
++ *
++ * Enabling the PHY clock and nothing else leaves the PHY unconfigured, and
++ * every port then fails to reset:
++ *
++ *   ehci-platform f9890000.usb: port 2 reset error -110
++ *
++ * The stock bootloader programs five more registers per port before it
++ * deasserts the UTMI resets. The values below are taken from its USB2 init
++ * routine, the branch guarded by a compare against chip ID 0x37980210, with
++ * the delays it uses between groups. The registers are undocumented; what
++ * matters is that without them the PHY does not come up.
++ */
++struct hisi_inno_phy_setup_step {
++	u32 addr;
++	u32 data;
++	u32 delay_us;
++};
++
++static const struct hisi_inno_phy_setup_step hisi_inno_phy_mv300_setup[] = {
++	{ 0x02, 0x6c, 2000 },
++	{ 0x00, 0x18, 2000 },
++	{ 0x04, 0xd7, 20 },
++	{ 0x1d, 0x1e, 20 },
++	{ 0x1f, 0x6e, 20 },
++};
++
+ static void hisi_inno_phy_setup(struct hisi_inno_phy_priv *priv)
+ {
+-	int i;
++	int i, j;
++
+ 	/* The phy clk is controlled by the port0 register 0x06. */
+ 	for (i = 0; i < INNO_PHY_PORT_NUM; i++)
+ 		hisi_inno_phy_write_reg(priv, i, 0x06, PHY_CLK_ENABLE);
+ 	msleep(PHY_CLK_STABLE_TIME);
++
++	if (priv->type != PHY_TYPE_MMIO)
++		return;
++
++	for (j = 0; j < ARRAY_SIZE(hisi_inno_phy_mv300_setup); j++) {
++		const struct hisi_inno_phy_setup_step *step =
++			&hisi_inno_phy_mv300_setup[j];
++
++		for (i = 0; i < INNO_PHY_PORT_NUM; i++)
++			hisi_inno_phy_write_reg(priv, i, step->addr,
++						step->data);
++		usleep_range(step->delay_us, step->delay_us * 2);
++	}
+ }
+ 
+ static int hisi_inno_phy_init(struct phy *phy)
+@@ -181,6 +223,9 @@ static int hisi_inno_phy_probe(struct platform_device *pdev)
+ 			return PTR_ERR(rst);
+ 
+ 		base = of_iomap(child, 0);
++		if (!base && priv->type == PHY_TYPE_MMIO)
++			dev_warn(dev, "%pOFn has no mappable reg, falling back to the test port\n",
++				 child);
+ 
+ 		priv->ports[i].utmi_rst = rst;
+ 		priv->ports[i].base = base;
+-- 
+2.43.0
+

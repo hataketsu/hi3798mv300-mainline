@@ -1,0 +1,34 @@
+From c27d3dffa6687eb3cd18253e8bfeab99f7fc04b4 Mon Sep 17 00:00:00 2001
+From: hi3798 port <port@localhost>
+Date: Wed, 29 Jul 2026 03:04:55 +0000
+Subject: [PATCH 2/3] phy: hisilicon: hisi-inno-phy: use the current reset
+ array API
+
+The Hi3798MV200 patch was written against reset_control_array_get(dev,
+shared, optional). That signature is gone -- the two booleans were folded
+into a single enum reset_control_flags -- so the call no longer builds:
+
+  error: too many arguments to function devm_reset_control_array_get
+
+(false, false) meant exclusive and not optional, which is what
+devm_reset_control_array_get_exclusive() spells today.
+---
+ drivers/phy/hisilicon/phy-hisi-inno-usb2.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/drivers/phy/hisilicon/phy-hisi-inno-usb2.c b/drivers/phy/hisilicon/phy-hisi-inno-usb2.c
+index e120da0c9570..b84e3acb063b 100644
+--- a/drivers/phy/hisilicon/phy-hisi-inno-usb2.c
++++ b/drivers/phy/hisilicon/phy-hisi-inno-usb2.c
+@@ -165,7 +165,7 @@ static int hisi_inno_phy_probe(struct platform_device *pdev)
+ 	if (IS_ERR(priv->ref_clk))
+ 		return PTR_ERR(priv->ref_clk);
+ 
+-	priv->rsts = devm_reset_control_array_get(dev, false, false);
++	priv->rsts = devm_reset_control_array_get_exclusive(dev);
+ 	if (IS_ERR(priv->rsts))
+ 		return PTR_ERR(priv->rsts);
+ 
+-- 
+2.43.0
+
