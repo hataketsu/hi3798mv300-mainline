@@ -137,14 +137,75 @@ None of that exists in mainline. The `cpu_opp_table` in `hi3798mv200.dtsi`
 carries no `opp-microvolt` and there is no `cpu-supply` regulator, so even if
 the clock could be changed the voltage would stay where firmware left it.
 
+## The supply is a PWM into a buck, not a PMIC
+
+There is no PMIC on this board — six discrete buck converters, and the SoC
+trims them by driving a PWM into the feedback node. That is why the vendor
+code reaches for PWM registers rather than an I²C regulator.
+
+The PWMs live in the same PMC block as the temperature sensor:
+
+| register | address | |
+|---|---|---|
+| `PERI_PMC6` | `0xf8a23018` | CPU supply on most boards |
+| `PERI_PMC7` | `0xf8a2301c` | CPU supply on **this** board |
+| `PERI_PMC8` | `0xf8a23020` | core supply |
+
+Duty is bits [31:16], period bits [15:0], and
+
+```
+period = ((vmax - vmin) * PWM_CLASS) / PWM_STEP + 1
+duty   = ((vmax - volt) * PWM_CLASS) / PWM_STEP + 1
+                                 PWM_CLASS = 2, PWM_STEP = 5 mV
+```
+
+Higher duty means *lower* voltage. Reading the registers back gives a period
+of 221 on all three, which pins the limits to the one table in
+`hi_drv_pmoc.h` that produces it — `CPU_VMAX 1250`, `CPU_VMIN 700` — and lets
+the current operating point be recovered:
+
+| register | raw | duty | voltage |
+|---|---|---|---|
+| `PERI_PMC6` | `0x003d00dd` | 61 | 1100 mV |
+| `PERI_PMC7` | `0x004100dd` | 65 | **1090 mV** |
+| `PERI_PMC8` | `0x007900dd` | 121 | 950 mV |
+
+So the cores sit at 1188 MHz on about 1.09 V. The bootloader's own reg table
+writes `0x006900dd` to `PERI_PMC7` — duty 105, 990 mV — so the stock
+bootloader raises the CPU rail before handing over to Linux, which is the
+frequency/voltage ordering the vendor DVFS code enforces.
+
+### Which rail is a problem here
+
+`device_volt_scale()` has a board quirk that matters:
+
+```c
+#if defined(CHIP_TYPE_hi3798mv300)
+	if (((SC_GENm[5] >> 29) & 0x07) == 0x2) /* dms board */
+	{
+		/* The dms board cpu volt use core pwm */
+		pwm_reg = PERI_PMC7;
+	}
+#endif
+```
+
+and `cpu_volt_scale()` then sets `cur_core_volt = volt` for the same board.
+This unit reports `dms board` — the auxiliary code prints it during every
+serial boot — so **the CPU and the SoC core share a rail**. Dropping the CPU
+voltage for a lower OPP would drop the core voltage with it, which is a much
+bigger claim than undervolting a CPU that has its own supply.
+
 ## What it would take
 
 1. Find what actually clocks the cores. `hpll` is the candidate on rate alone;
    nothing in the CRG driver claims it, so the register that selects and
    divides it has not been identified.
-2. Write a PWM regulator for the CPU supply and give the OPP table
-   `opp-microvolt`, or frequency changes are either pointless or unsafe.
-3. Note that the OPP table's 1600 MHz entry is fiction — the part runs 1188.
+2. Wire the supply up as a `pwm-regulator` — mainline already has the driver;
+   what is missing is a PWM driver for the PMC block — and give the OPP table
+   `opp-microvolt` plus a `cpu-supply`. Without that a frequency change is
+   either pointless or unsafe.
+3. Account for the shared rail on this board before lowering any voltage.
+4. Note that the OPP table's 1600 MHz entry is fiction — the part runs 1188.
 
 The payoff is idle power on a mains-powered box that peaks at 70 °C against a
 95 °C trip. See [thermal.md](thermal.md). It is not worth doing before someone
