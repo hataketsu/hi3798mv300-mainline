@@ -11,6 +11,9 @@
 
 /dts-v1/;
 
+#include <dt-bindings/gpio/gpio.h>
+#include <dt-bindings/leds/common.h>
+
 #include "hi3798mv200.dtsi"
 
 / {
@@ -37,6 +40,54 @@
 	memory@0 {
 		device_type = "memory";
 		reg = <0x0 0x0 0x0 0x40000000>;
+	};
+
+	/*
+	 * The two front-panel LEDs, both on gpio5 -- the PL061 at 0xf8004000,
+	 * which sits in the always-on block next to sysctrl rather than with
+	 * gpio0-gpio9 at 0xf8b2xxxx. That placement is the point: the indicator
+	 * has to stay lit in standby, when the main peripheral domain is down.
+	 *
+	 * Both are active high, and neither is discoverable from software alone.
+	 * Reading GPIODIR/GPIODATA across all ten PL061 banks on a running
+	 * kernel showed gpio5 as the only bank with outputs configured (line 0
+	 * low, line 1 high), which found red on line 0 but nothing else: the
+	 * bootloader leaves the blue LED's pin an *input*, so it never lights
+	 * under mainline and never shows up in a register scan. It turned up
+	 * only by driving each remaining line in turn and watching the box.
+	 *
+	 * Line 1 is deliberately left unassigned. It is an output the bootloader
+	 * leaves high, but it lights nothing, and until what it does is known it
+	 * must not be handed to a driver -- least of all one that would blink it.
+	 *
+	 * The vendor stack is no help: /vendor/bin/gpio-led only calls
+	 * HI_UNF_GPIO_Init(), polls the service.bootanim.exit property and calls
+	 * HI_UNF_GPIO_DeInit(). The pin numbers live inside the closed
+	 * HI_UNF_GPIO library and the vendor device tree has no LED node at all.
+	 */
+	leds {
+		compatible = "gpio-leds";
+
+		led-0 {
+			gpios = <&gpio5 0 GPIO_ACTIVE_HIGH>;
+			color = <LED_COLOR_ID_RED>;
+			function = LED_FUNCTION_ACTIVITY;
+			/* Lit while any core is out of idle. */
+			linux,default-trigger = "cpu";
+		};
+
+		led-1 {
+			gpios = <&gpio5 2 GPIO_ACTIVE_HIGH>;
+			color = <LED_COLOR_ID_BLUE>;
+			function = LED_FUNCTION_POWER;
+			/*
+			 * The stock firmware turns this on solid once Android has
+			 * booted. A heartbeat says more -- it distinguishes a live
+			 * kernel from a hung one -- and any other trigger is one
+			 * write to /sys/class/leds/blue:power/trigger away.
+			 */
+			linux,default-trigger = "heartbeat";
+		};
 	};
 
 	reserved-memory {
@@ -160,21 +211,23 @@
 };
 
 /*
- * The FE PHY sits at MDIO address 2 on this board, not the address 1 the dtsi
- * assumes. Both the stock environment (phy_addr=2,1) and the stock bootloader's
- * own probe ("Eth up port phy at 0x02 is connect") agree on this.
+ * The FE PHY keeps the dtsi's MDIO address 1. The stock environment reads
+ * phy_addr=2,1 and the stock bootloader prints "Eth up port phy at 0x02 is
+ * connect", but the address it actually programs into perictrl 0xf8a20118[4:0]
+ * is 1 -- read back from a running kernel as 0x03000001. Address 2 gives an
+ * MDIO bus that answers 0x00000000 to every read.
  */
-&mdio {
-	/delete-node/ ethernet-phy@1;
-
-	tvbox_fephy: ethernet-phy@2 {
-		reg = <2>;
-		#phy-cells = <0>;
-	};
+&femac {
+	status = "okay";
 };
 
-&femac {
-	phy-handle = <&tvbox_fephy>;
+/*
+ * IR receiver. No linux,rc-map-name on purpose -- the remote this box shipped
+ * with has not been identified, so the driver falls back to RC_MAP_EMPTY and
+ * every scancode arrives undecorated. Read raw pulses from /dev/lirc0 or
+ * scancodes with `ir-keytable -t`, then pick a keymap once one matches.
+ */
+&ir {
 	status = "okay";
 };
 
@@ -195,6 +248,15 @@
 };
 
 &gpio4 {
+	status = "okay";
+};
+
+/*
+ * gpio5 drives the front-panel LEDs. It is also the one PL061 on this SoC
+ * with no gpio-ranges, so unlike gpio0-gpio9 it probes without a pinctrl
+ * driver -- and hisilicon,hi3798mv200-ioconfig has none in mainline.
+ */
+&gpio5 {
 	status = "okay";
 };
 

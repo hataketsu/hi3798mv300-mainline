@@ -25,12 +25,15 @@ The stock firmware is Android 9 (API 28) on kernel 4.9.118 from the HiSilicon
 | USB 2.0 | EHCI + OHCI, roots the system off a USB stick |
 | Wi-Fi | RTL8822BS on SDIO, mainline `rtw88`, firmware 27.2.0 |
 | Userland | Debian 13 trixie arm64, systemd, sshd |
-| Ethernet | MAC probes, **no PHY** — missing `CONFIG_MDIO_HISI_FEMAC`, fix built but untested |
-| GPIO/pinctrl | defer forever, waiting on a pinctrl driver |
+| Ethernet | `end0` up, 100 Mbit full duplex — needed a kconfig, a missing MDIO clock and the right PHY address |
+| IR | `hix5hd2-ir` at `0xf8001000`, raw pulses on `/dev/lirc0` and scancodes after the in-kernel decoders |
+| LEDs | both front-panel LEDs on `gpio5`, exposed as `/sys/class/leds` with triggers |
+| GPIO/pinctrl | `gpio5` works; gpio0-gpio9 defer forever, waiting on a pinctrl driver |
 | USB 3.0 | still disabled |
 
 Details: [docs/debian-usb.md](docs/debian-usb.md), [docs/usb.md](docs/usb.md),
 [docs/wifi.md](docs/wifi.md), [docs/ethernet.md](docs/ethernet.md),
+[docs/ir.md](docs/ir.md), [docs/leds.md](docs/leds.md),
 [docs/kernel.md](docs/kernel.md), [patches/kernel/](patches/kernel/).
 
 > Mainline **U-Boot already supports this SoC family** and builds unpatched for
@@ -72,7 +75,9 @@ docs/
   debian-usb.md        Debian rootfs on USB, unattended boot, the eMMC env change
   usb.md               USB2 PHY reverse engineered out of the stock bootloader
   wifi.md              RTL8822BS on SDIO, and the dtsi typo that hid the controller
-  ethernet.md          why the FE MAC finds no PHY; vendor FEPHY init decoded
+  ethernet.md          three defects between the FE MAC and its PHY, and the fixes
+  ir.md                IR receiver, the sysctrl clock it needs, enabling the decoders
+  leds.md              finding two undocumented front-panel LEDs by measurement
   uart-access.md       serial console wiring, flow control, reaching the U-Boot prompt
 dts/
   hi3798mv300-tvbox.dts  board device tree for this box
@@ -92,6 +97,8 @@ scripts/
   write-usb-rootfs.sh  write the Debian rootfs and kernel to the box's USB stick
   extract-dtb.py       pull FDT blobs out of boot/recovery/dtbo images
   dump-partitions.sh   dump every firmware partition to external storage
+  tvbox-panel.py       browser panel: drive the LEDs, watch IR live, probe GPIO
+  tvbox-gpio-helper.py privileged PL061 access for the panel, bank/pin only
 ```
 
 ## What is deliberately *not* here
